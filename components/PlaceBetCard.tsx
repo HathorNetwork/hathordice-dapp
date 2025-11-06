@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { calculateMultiplier, calculatePayout, thresholdToWinChance, winChanceToThreshold, formatNumber } from '@/lib/utils';
+import { useHathor } from '@/contexts/HathorContext';
+import { calculateMultiplier, calculatePayout, thresholdToWinChance, winChanceToThreshold, formatNumber, formatTokenAmount } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 
 interface PlaceBetCardProps {
   selectedToken: string;
@@ -12,37 +14,80 @@ interface PlaceBetCardProps {
 
 export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: PlaceBetCardProps) {
   const { walletBalance, contractBalance } = useWallet();
+  const { isConnected, contractState, placeBet } = useHathor();
   const totalBalance = walletBalance + contractBalance;
-  
+
   const [betAmount, setBetAmount] = useState(100);
   const [betMode, setBetMode] = useState<'threshold' | 'chance'>('chance');
   const [winChance, setWinChance] = useState(50);
   const [threshold, setThreshold] = useState(32768);
   const [multiplier, setMultiplier] = useState(1.96);
   const [potentialPayout, setPotentialPayout] = useState(196);
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
+
+  const randomBitLength = contractState?.random_bit_length || 16;
+  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
+  const maxBetAmount = contractState?.max_bet_amount || 1000000;
 
   useEffect(() => {
-    const mult = calculateMultiplier(threshold);
-    const payout = calculatePayout(betAmount, threshold);
+    const mult = calculateMultiplier(threshold, randomBitLength, houseEdgeBasisPoints);
+    const payout = calculatePayout(betAmount, threshold, randomBitLength, houseEdgeBasisPoints);
     setMultiplier(mult);
     setPotentialPayout(payout);
-  }, [betAmount, threshold]);
+  }, [betAmount, threshold, randomBitLength, houseEdgeBasisPoints]);
 
   const handleWinChanceChange = (value: number) => {
     setWinChance(value);
-    const newThreshold = winChanceToThreshold(value);
+    const newThreshold = winChanceToThreshold(value, randomBitLength);
     setThreshold(newThreshold);
   };
 
   const handleThresholdChange = (value: number) => {
     setThreshold(value);
-    const newWinChance = thresholdToWinChance(value);
+    const newWinChance = thresholdToWinChance(value, randomBitLength);
     setWinChance(newWinChance);
   };
 
   const setQuickAmount = (percentage: number) => {
-    setBetAmount(totalBalance * percentage);
+    const amount = totalBalance * percentage;
+    const maxAllowed = maxBetAmount / 100;
+    setBetAmount(Math.min(amount, maxAllowed));
   };
+
+  const handlePlaceBet = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (betAmount <= 0) {
+      toast.error('Bet amount must be positive');
+      return;
+    }
+
+    const maxAllowed = maxBetAmount / 100;
+    if (betAmount > maxAllowed) {
+      toast.error(`Bet amount exceeds maximum of ${formatTokenAmount(maxBetAmount)} ${selectedToken}`);
+      return;
+    }
+
+    if (betAmount > totalBalance) {
+      toast.error('Insufficient balance');
+      return;
+    }
+
+    setIsPlacingBet(true);
+    try {
+      const result = await placeBet(betAmount, threshold);
+      toast.success(`Bet placed successfully! TX: ${result.hash?.slice(0, 10)}...`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to place bet');
+    } finally {
+      setIsPlacingBet(false);
+    }
+  };
+
+  const maxThreshold = Math.pow(2, randomBitLength) - 1;
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -53,11 +98,13 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
         <span className="text-white font-medium">🎲 PLACE A BET</span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
       </button>
-      
+
       {isExpanded && (
         <div className="p-6 border-t border-slate-700 space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-2">Bet Amount</label>
+            <label className="block text-sm text-slate-400 mb-2">
+              Bet Amount (Max: {formatTokenAmount(maxBetAmount)} {selectedToken})
+            </label>
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
               <input
                 type="number"
@@ -65,6 +112,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
                 onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)}
                 className="flex-1 bg-transparent text-white outline-none"
                 min="0"
+                max={maxBetAmount / 100}
                 step="0.01"
               />
               <span className="text-slate-400">{selectedToken}</span>
@@ -136,7 +184,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
             </div>
           ) : (
             <div>
-              <label className="block text-sm text-slate-400 mb-2">Threshold (1-65,535)</label>
+              <label className="block text-sm text-slate-400 mb-2">Threshold (1-{maxThreshold.toLocaleString()})</label>
               <div className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
                 <input
                   type="number"
@@ -144,7 +192,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
                   onChange={(e) => handleThresholdChange(parseInt(e.target.value) || 1)}
                   className="w-full bg-transparent text-white outline-none"
                   min="1"
-                  max="65535"
+                  max={maxThreshold}
                   step="1"
                 />
               </div>
@@ -166,8 +214,12 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
             </div>
           </div>
 
-          <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-            🎲 Place Bet
+          <button
+            onClick={handlePlaceBet}
+            disabled={!isConnected || isPlacingBet}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+          >
+            {isPlacingBet ? '⏳ Placing Bet...' : '🎲 Place Bet'}
           </button>
         </div>
       )}

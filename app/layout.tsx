@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { WalletProvider } from '@/contexts/WalletContext';
+import { HathorProvider } from '@/contexts/HathorContext';
+import { ToastProvider, Toaster } from '@/lib/toast';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,9 +17,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <WalletProvider>
-          {children}
-        </WalletProvider>
+        <ToastProvider>
+          <HathorProvider>
+            <WalletProvider>
+              {children}
+              <Toaster position="top-right" />
+            </WalletProvider>
+          </HathorProvider>
+        </ToastProvider>
       </body>
     </html>
   );
