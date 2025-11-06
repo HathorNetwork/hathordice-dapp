@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { HathorProvider } from '@/contexts/HathorContext';
 import { WalletConnectProvider } from '@/contexts/WalletConnectContext';
-import { WalletConnectInitializer } from '@/components/WalletConnectInitializer';
 import { ToastProvider, Toaster } from '@/lib/toast';
 import './globals.css';
 
@@ -20,16 +19,14 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ToastProvider>
-          <WalletConnectInitializer>
-            <WalletConnectProvider>
-              <HathorProvider>
-                <WalletProvider>
-                  {children}
-                  <Toaster position="top-right" />
-                </WalletProvider>
-              </HathorProvider>
-            </WalletConnectProvider>
-          </WalletConnectInitializer>
+          <WalletConnectProvider>
+            <HathorProvider>
+              <WalletProvider>
+                {children}
+                <Toaster position="top-right" />
+              </WalletProvider>
+            </HathorProvider>
+          </WalletConnectProvider>
         </ToastProvider>
       </body>
     </html>

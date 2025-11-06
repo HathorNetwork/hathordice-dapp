@@ -6,7 +6,7 @@ import { PairingTypes, SessionTypes } from '@walletconnect/types';
 import { Web3Modal } from '@web3modal/standalone';
 import { getSdkError } from '@walletconnect/utils';
 import { WALLETCONNECT_PROJECT_ID } from '@/lib/walletConnectConfig';
-import { getWalletConnectClient } from '@/lib/walletConnectClient';
+import { initializeWalletConnectClient } from '@/lib/walletConnectClient';
 
 interface IWalletConnectContext {
   client: Client | undefined;
@@ -35,6 +35,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
   const [session, setSession] = useState<SessionTypes.Struct>();
   const [accounts, setAccounts] = useState<string[]>([]);
   const [chains, setChains] = useState<string[]>([]);
+  const [clientInitialized, setClientInitialized] = useState(false);
 
   const reset = () => {
     setSession(undefined);
@@ -110,22 +111,33 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
   );
 
   useEffect(() => {
-    (async () => {
-      try {
-        const client = getWalletConnectClient();
-        await subscribeToEvents(client);
-        await checkPersistedState(client);
-        setClient(client);
-      } catch (error) {
-        console.error('Failed to initialize WalletConnect:', error);
-      }
-    })();
-  }, [subscribeToEvents, checkPersistedState]);
+    if (client && !clientInitialized) {
+      (async () => {
+        try {
+          await subscribeToEvents(client);
+          await checkPersistedState(client);
+          setClientInitialized(true);
+        } catch (error) {
+          console.error('Failed to setup WalletConnect:', error);
+        }
+      })();
+    }
+  }, [client, clientInitialized, subscribeToEvents, checkPersistedState]);
 
   const connect = useCallback(
     async (pairing: { topic: string } | undefined) => {
-      if (!client) {
-        throw new Error('WalletConnect is not initialized');
+      let _client = client;
+
+      if (!_client) {
+        try {
+          _client = await initializeWalletConnectClient();
+          setClient(_client);
+          await subscribeToEvents(_client);
+          await checkPersistedState(_client);
+        } catch (error) {
+          console.error('Failed to initialize WalletConnect:', error);
+          throw error;
+        }
       }
 
       if (session) {
@@ -141,7 +153,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
           },
         };
 
-        const { uri, approval } = await client.connect({
+        const { uri, approval } = await _client.connect({
           pairingTopic: pairing?.topic,
           requiredNamespaces,
         });
@@ -156,7 +168,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
 
         const session = await approval();
         await onSessionConnected(session);
-        setPairings(client.pairing.getAll({ active: true }));
+        setPairings(_client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error('Failed to connect:', e);
         throw e;
@@ -164,7 +176,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
         web3Modal.closeModal();
       }
     },
-    [client, session, onSessionConnected]
+    [client, session, onSessionConnected, subscribeToEvents, checkPersistedState]
   );
 
   const disconnect = useCallback(async () => {

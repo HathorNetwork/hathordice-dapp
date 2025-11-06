@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWalletConnect } from '@/contexts/WalletConnectContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface WalletConnectionModalProps {
   open: boolean;
@@ -14,6 +14,13 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
   const { connect } = useWalletConnect();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setIsConnecting(false);
+      setError(null);
+    }
+  }, [open]);
 
   const handleReownConnect = async () => {
     try {
