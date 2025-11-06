@@ -63,9 +63,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   }, [network]);
 
   useEffect(() => {
-    if (config.useMockWallet) {
-      refreshContractStates();
-    }
+    refreshContractStates();
   }, []);
 
   useEffect(() => {
@@ -218,14 +216,14 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       for (const contractId of config.contractIds) {
         const history = await coreAPI.getContractHistory(contractId, 20);
 
-        for (const tx of history) {
+        for (const tx of history.transactions) {
           if (tx.nc_method === 'place_bet') {
             const bet: Bet = {
               id: tx.tx_id,
-              player: tx.caller || 'Unknown',
+              player: tx.nc_caller || 'Unknown',
               amount: tx.args?.[0] ? tx.args[0] / 100 : 0,
               threshold: tx.args?.[1] || 0,
-              result: tx.voided ? 'failed' : (tx.first_block ? 'win' : 'pending'),
+              result: tx.is_voided ? 'failed' : (!tx.first_block ? 'pending' : (tx.payout > 0 ? 'win' : 'lose')),
               payout: 0,
               token: 'HTR',
               timestamp: tx.timestamp * 1000,
@@ -245,7 +243,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       return allBets;
     } catch (error) {
       console.error('Failed to fetch recent bets:', error);
-      return [];
+      throw error;
     }
   };
 
@@ -271,7 +269,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     const amountInCents = Math.floor(betAmount * 100);
 
     const params = {
-      method: 'place_bet',
+      nc_method: 'place_bet',
       nc_id: contractId,
       actions: [
         {

@@ -19,25 +19,25 @@ export class HathorCoreAPI {
   }
 
   async getContractState(contractId: string): Promise<ContractState> {
-    const response = await fetch(`${this.baseUrl}/nc_state/${contractId}`);
+    const fields = ['max_bet_amount', 'token_uid', 'house_edge_basis_points', 'random_bit_length', 'available_tokens'];
+    const queryString = fields.map(field => `fields[]=${field}`).join('&');
+    const response = await fetch(`${this.baseUrl}/nano_contract/state?id=${contractId}&${queryString}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch contract state: ${response.statusText}`);
     }
     const data = await response.json();
     return {
-      token_uid: data.fields?.token_uid || '00',
-      max_bet_amount: data.fields?.max_bet_amount || 0,
-      house_edge_basis_points: data.fields?.house_edge_basis_points || 200,
-      random_bit_length: data.fields?.random_bit_length || 16,
-      available_tokens: data.fields?.available_tokens || 0,
-      total_liquidity_provided: data.fields?.total_liquidity_provided || 0,
-      liquidity_providers: data.fields?.liquidity_providers || {},
-      balances: data.fields?.balances || {},
+      token_uid: data.fields?.token_uid?.value || '00',
+      max_bet_amount: data.fields?.max_bet_amount?.value || 0,
+      house_edge_basis_points: data.fields?.house_edge_basis_points?.value || 200,
+      random_bit_length: data.fields?.random_bit_length?.value || 16,
+      available_tokens: data.fields?.available_tokens?.value || 0,
+      total_liquidity_provided: data.fields?.total_liquidity_provided?.value || 0,
     };
   }
 
   async getContractHistory(contractId: string, limit: number = 50): Promise<ContractHistory> {
-    const response = await fetch(`${this.baseUrl}/nc_history/${contractId}?limit=${limit}`);
+    const response = await fetch(`${this.baseUrl}/nano_contract/history?id=${contractId}&count=${limit}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch contract history: ${response.statusText}`);
     }
@@ -46,9 +46,10 @@ export class HathorCoreAPI {
       transactions: data.history?.map((tx: any) => ({
         tx_id: tx.hash,
         timestamp: tx.timestamp,
-        method: tx.nc_method,
-        caller: tx.nc_caller,
-        success: !tx.voided,
+        nc_method: tx.nc_method,
+        nc_caller: tx.nc_address,
+        first_block: tx.first_block,
+        is_voided: tx.is_voided,
       })) || [],
       total: data.history?.length || 0,
     };

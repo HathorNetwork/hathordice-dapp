@@ -13,21 +13,30 @@ All components have been successfully integrated and the application is ready to
 
 ### 🎨 UI Components
 - **WalletConnectionModal** - Connect via Reown or Metamask Snaps
+- **.env.local.example** - Configuration template
+
+## Quick Start
+
+# Install dependencies
+
+User request: Adding error handling to the RecentBetsTable features list
+
+### 🎨 UI Components
+- **WalletConnectionModal** - Connect via Reown or Metamask Snaps
 - **NetworkSelector** - Switch between networks
-- **ContractInfoPanel** - Real-time contract state display
-- **Updated PlaceBetCard** - Integrated with contract parameters
+- **ContractInfoCompact** - Token-specific contract info in Game Actions panel
+- **RecentBetsTable** - Enhanced with:
+  - Loading state with spinner
+  - Error state with "Try Again" button
+  - Auto-refresh every 10 seconds
+  - Manual refresh button
+  - Last updated timestamp
+  - Pending transactions support
+  - Failed transactions support
+  - Potential payout display for pending bets
+  - Error message display when API fails
+- **Updated PlaceBetCard** - Token-aware bet placement
 - **Custom UI Library** - Dialog, Button, Select, Card, Toast components
-
-### ⚙️ Configuration
-- Environment-based configuration
-- Mock wallet mode for development
-- Network selection support
-- Contract ID management
-
-### 📚 Documentation
-- **README.md** - Complete documentation
-- **INTEGRATION.md** - Technical implementation details
-- **QUICKSTART.md** - 5-minute getting started guide
 - **.env.local.example** - Configuration template
 
 ## Quick Start

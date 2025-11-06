@@ -5,8 +5,6 @@ export interface ContractState {
   random_bit_length: number;
   available_tokens: number;
   total_liquidity_provided: number;
-  liquidity_providers: Record<string, number>;
-  balances: Record<string, number>;
 }
 
 export interface BlueprintInfo {
@@ -24,9 +22,10 @@ export interface ContractHistory {
 export interface ContractTransaction {
   tx_id: string;
   timestamp: number;
-  method: string;
-  caller: string;
-  success: boolean;
+  nc_method: string;
+  nc_caller: string;
+  first_block: string | null;
+  is_voided: boolean;
 }
 
 export interface HathorRPCRequest {

@@ -9,16 +9,19 @@ export default function RecentBetsTable() {
   const { fetchRecentBets } = useHathor();
   const [bets, setBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const loadBets = async () => {
     setLoading(true);
+    setError(null);
     try {
       const recentBets = await fetchRecentBets();
       setBets(recentBets);
       setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to load recent bets:', error);
+    } catch (err: any) {
+      console.error('Failed to load recent bets:', err);
+      setError(err.message || 'Failed to load recent bets');
     } finally {
       setLoading(false);
     }
@@ -79,9 +82,14 @@ export default function RecentBetsTable() {
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             📊 RECENT BETS
           </h2>
-          {lastUpdated && (
+          {lastUpdated && !error && (
             <p className="text-xs text-slate-400 mt-1">
               Last updated at {formatLastUpdated()}
+            </p>
+          )}
+          {error && (
+            <p className="text-xs text-red-400 mt-1">
+              ⚠️ {error}
             </p>
           )}
         </div>
@@ -100,6 +108,17 @@ export default function RecentBetsTable() {
           <div className="p-8 text-center">
             <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
             <p className="text-slate-400">Loading recent bets...</p>
+          </div>
+        ) : error && bets.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={loadBets}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         ) : bets.length === 0 ? (
           <div className="p-8 text-center">
