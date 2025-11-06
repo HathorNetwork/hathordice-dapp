@@ -37,6 +37,10 @@ User request: Adding error handling to the RecentBetsTable features list
   - Failed transactions support
   - Potential payout display for pending bets
   - Error message display when API fails
+  - Comprehensive error handling for network failures
+  - Graceful degradation when API is unavailable
+  - User-friendly error messages for different failure types
+  - Retry mechanism with exponential backoff
 - **Updated PlaceBetCard** - Token-aware bet placement
 - **Custom UI Library** - Dialog, Button, Select, Card, Toast components
 - **.env.local.example** - Configuration template

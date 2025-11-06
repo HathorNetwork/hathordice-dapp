@@ -26,6 +26,8 @@ export interface ContractTransaction {
   nc_caller: string;
   first_block: string | null;
   is_voided: boolean;
+  args?: number[];
+  payout?: number;
 }
 
 export interface HathorRPCRequest {

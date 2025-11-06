@@ -1,10 +1,21 @@
 import { HathorRPCRequest, HathorRPCResponse, GetBalanceParams, GetAddressParams, SendNanoContractTxParams } from '@/types/hathor';
+import Client from '@walletconnect/sign-client';
+import { SessionTypes } from '@walletconnect/types';
 
 export class HathorRPCService {
   private useMock: boolean;
+  private client: Client | undefined;
+  private session: SessionTypes.Struct | undefined;
 
-  constructor(useMock: boolean = false) {
+  constructor(useMock: boolean = false, client?: Client, session?: SessionTypes.Struct) {
     this.useMock = useMock;
+    this.client = client;
+    this.session = session;
+  }
+
+  updateClientAndSession(client?: Client, session?: SessionTypes.Struct) {
+    this.client = client;
+    this.session = session;
   }
 
   async request<T = any>(method: string, params?: any): Promise<T> {
@@ -12,18 +23,27 @@ export class HathorRPCService {
       return this.mockRequest<T>(method, params);
     }
 
-    if (typeof window === 'undefined' || !(window as any).hathorRpc) {
-      throw new Error('Hathor RPC not available. Please connect a wallet.');
+    if (!this.client || !this.session) {
+      throw new Error('Wallet not connected. Please connect via Reown.');
     }
 
-    const rpc = (window as any).hathorRpc;
-    const response: HathorRPCResponse<T> = await rpc.request({ method, params });
+    try {
+      const result = await this.client.request<T>({
+        chainId: 'hathor:testnet',
+        topic: this.session.topic,
+        request: {
+          method,
+          params,
+          jsonrpc: '2.0',
+          id: Date.now(),
+        },
+      });
 
-    if (response.error) {
-      throw new Error(response.error.message);
+      return result;
+    } catch (error: any) {
+      console.error('RPC request failed:', error);
+      throw new Error(error?.message || 'RPC request failed');
     }
-
-    return response.result as T;
   }
 
   async getConnectedNetwork(): Promise<{ network: string; genesisHash: string }> {

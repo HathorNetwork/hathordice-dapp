@@ -6,6 +6,7 @@ import { HathorCoreAPI } from '@/lib/hathorCoreAPI';
 import { ContractState } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
 import { Bet } from '@/types';
+import { useWalletConnect } from './WalletConnectContext';
 
 interface HathorContextType {
   isConnected: boolean;
@@ -17,7 +18,7 @@ interface HathorContextType {
   rpcService: HathorRPCService;
   coreAPI: HathorCoreAPI;
   connectWallet: () => Promise<void>;
-  disconnectWallet: () => void;
+  disconnectWallet: () => Promise<void>;
   switchNetwork: (network: Network) => Promise<void>;
   refreshContractStates: () => Promise<void>;
   placeBet: (betAmount: number, threshold: number, token: string) => Promise<any>;
@@ -51,13 +52,20 @@ const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
 };
 
 export function HathorProvider({ children }: { children: ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false);
+  const walletConnect = useWalletConnect();
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
   const [network, setNetwork] = useState<Network>(config.defaultNetwork);
   const [contractStates, setContractStates] = useState<Record<string, ContractState>>({});
-  const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet));
+  const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
+  const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet, walletConnect.client, walletConnect.session));
   const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(network));
+
+  const isConnected = walletConnect.isConnected;
+
+  useEffect(() => {
+    rpcService.updateClientAndSession(walletConnect.client, walletConnect.session);
+  }, [walletConnect.client, walletConnect.session, rpcService]);
 
   useEffect(() => {
     setCoreAPI(new HathorCoreAPI(network));
@@ -70,40 +78,62 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isConnected) {
       refreshContractStates();
+      const addr = walletConnect.getFirstAddress();
+      setAddress(addr);
+      if (addr) fetchBalance(addr);
+    } else {
+      setAddress(null);
+      setBalance(0);
     }
-  }, [isConnected, network]);
+  }, [isConnected, network, walletConnect]);
+
+  const fetchBalance = async (addr: string) => {
+    if (!addr) return;
+    try {
+      const balanceInfo = await rpcService.getBalance({
+        network: network,
+        tokens: ['00'],
+      });
+      setBalance(balanceInfo[0]?.balance?.unlocked || 0);
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
 
   const connectWallet = async () => {
     try {
-      const networkInfo = await rpcService.getConnectedNetwork();
-      const addressInfo = await rpcService.getAddress({
-        network: networkInfo.network,
-        type: 'first_empty',
-      });
-      const balanceInfo = await rpcService.getBalance({
-        network: networkInfo.network,
-        tokens: ['00'],
-      });
-
-      setAddress(addressInfo.address);
-      setBalance(balanceInfo[0]?.balance?.unlocked || 0);
-      setIsConnected(true);
+      await walletConnect.connect();
+      // walletConnect context will update isConnected and addresses; effect above will pick it up
     } catch (error) {
       console.error('Failed to connect wallet:', error);
       throw error;
     }
   };
 
-  const disconnectWallet = () => {
-    setIsConnected(false);
-    setAddress(null);
-    setBalance(0);
+  const disconnectWallet = async () => {
+    try {
+      await walletConnect.disconnect();
+      // walletConnect context will update isConnected; effect above will clear address/balance
+    } catch (error) {
+      console.error('Failed to disconnect wallet:', error);
+      // don't rethrow to avoid breaking UI flows
+    }
   };
 
   const switchNetwork = async (newNetwork: Network) => {
     setNetwork(newNetwork);
+    // If WalletConnect supports network switching, attempt it
+    if (typeof (walletConnect as any).switchNetwork === 'function') {
+      try {
+        await (walletConnect as any).switchNetwork(newNetwork);
+      } catch (err) {
+        console.warn('WalletConnect network switch failed (continuing with client-side network):', err);
+      }
+    }
     if (isConnected) {
       await refreshContractStates();
+      const addr = walletConnect.getFirstAddress?.() || null;
+      if (addr) await fetchBalance(addr);
     }
   };
 
@@ -114,6 +144,8 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const refreshContractStates = async () => {
     if (config.useMockWallet) {
       setContractStates(MOCK_CONTRACT_STATES);
+      // build token -> contractId map for mocks if possible (we don't have ids here)
+      setTokenContractMap({});
       return;
     }
 
@@ -121,12 +153,15 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
     try {
       const states: Record<string, ContractState> = {};
+      const map: Record<string, string> = {};
       for (const contractId of config.contractIds) {
         const state = await coreAPI.getContractState(contractId);
         const tokenName = TOKEN_UID_MAP[state.token_uid] || state.token_uid;
         states[tokenName] = state;
+        map[tokenName] = contractId;
       }
       setContractStates(states);
+      setTokenContractMap(map);
     } catch (error) {
       console.error('Failed to fetch contract states:', error);
     }
@@ -250,7 +285,8 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   };
 
   const placeBet = async (betAmount: number, threshold: number, token: string) => {
-    if (!isConnected || !address) {
+    const addr = address || walletConnect.getFirstAddress?.();
+    if (!isConnected || !addr) {
       throw new Error('Wallet not connected');
     }
 
@@ -259,11 +295,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       throw new Error('Contract state not loaded for token');
     }
 
-    const contractId = config.contractIds.find((id) => {
-      const state = contractStates[token];
-      return state !== undefined;
-    });
-
+    const contractId = tokenContractMap[token];
     if (!contractId) {
       throw new Error('Contract not found for token');
     }
@@ -278,13 +310,14 @@ export function HathorProvider({ children }: { children: ReactNode }) {
           type: 'deposit' as const,
           amount: amountInCents.toString(),
           token: contractState.token_uid,
-          address,
+          address: addr,
         },
       ],
       args: [amountInCents, threshold],
       push_tx: true,
     };
 
+    // rpcService is constructed with walletConnect client/session so it should route the tx via wallet
     return rpcService.sendNanoContractTx(params);
   };
 

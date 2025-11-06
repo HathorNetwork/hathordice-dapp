@@ -1,27 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatAddress } from '@/lib/utils';
 import { WalletConnectionModal } from './WalletConnectionModal';
 
 export default function Header() {
-  const { connected, address, disconnectWallet } = useWallet();
-  const { isConnected, address: hathorAddress, connectWallet: hathorConnect, disconnectWallet: hathorDisconnect } = useHathor();
+  const { isConnected, address, disconnectWallet } = useHathor();
   const [showModal, setShowModal] = useState(false);
 
   const handleConnect = async () => {
     setShowModal(true);
   };
 
-  const handleDisconnect = () => {
-    disconnectWallet();
-    hathorDisconnect();
+  const handleDisconnect = async () => {
+    await disconnectWallet();
   };
-
-  const displayAddress = hathorAddress || address;
-  const isWalletConnected = isConnected || connected;
 
   return (
     <>
@@ -34,11 +28,11 @@ export default function Header() {
           </div>
         </div>
 
-        {isWalletConnected ? (
+        {isConnected ? (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700">
               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              <span className="text-sm text-slate-300">{formatAddress(displayAddress || '')}</span>
+              <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
             </div>
             <button
               onClick={handleDisconnect}
@@ -60,7 +54,6 @@ export default function Header() {
       <WalletConnectionModal
         open={showModal}
         onOpenChange={setShowModal}
-        onConnect={hathorConnect}
       />
     </>
   );
