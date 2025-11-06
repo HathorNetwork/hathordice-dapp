@@ -14,7 +14,7 @@ interface PlaceBetCardProps {
 
 export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: PlaceBetCardProps) {
   const { walletBalance, contractBalance } = useWallet();
-  const { isConnected, contractState, placeBet } = useHathor();
+  const { isConnected, getContractStateForToken, placeBet } = useHathor();
   const totalBalance = walletBalance + contractBalance;
 
   const [betAmount, setBetAmount] = useState(100);
@@ -25,6 +25,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
   const [potentialPayout, setPotentialPayout] = useState(196);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
 
+  const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
   const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
   const maxBetAmount = contractState?.max_bet_amount || 1000000;
@@ -35,6 +36,11 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
     setMultiplier(mult);
     setPotentialPayout(payout);
   }, [betAmount, threshold, randomBitLength, houseEdgeBasisPoints]);
+
+  useEffect(() => {
+    const newThreshold = winChanceToThreshold(winChance, randomBitLength);
+    setThreshold(newThreshold);
+  }, [randomBitLength]);
 
   const handleWinChanceChange = (value: number) => {
     setWinChance(value);
@@ -78,7 +84,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
     setIsPlacingBet(true);
     try {
-      const result = await placeBet(betAmount, threshold);
+      const result = await placeBet(betAmount, threshold, selectedToken);
       toast.success(`Bet placed successfully! TX: ${result.hash?.slice(0, 10)}...`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to place bet');

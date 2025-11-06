@@ -3,11 +3,13 @@ export interface Bet {
   player: string;
   amount: number;
   threshold: number;
-  result: 'win' | 'lose';
+  result: 'win' | 'lose' | 'pending' | 'failed';
   payout: number;
+  potentialPayout?: number;
   token: string;
   timestamp: number;
   isYourBet?: boolean;
+  contractId?: string;
 }
 
 export interface WalletState {

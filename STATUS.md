@@ -47,13 +47,11 @@ npm run dev
 
 ## Key Features
 
-✅ **Mock Wallet Mode** - Test without real wallet  
-✅ **Dynamic Calculations** - Uses contract parameters  
-✅ **Max Bet Enforcement** - Respects contract limits  
-✅ **Network Switching** - India Testnet / Mainnet  
-✅ **Real-time State** - Contract info updates  
-✅ **Toast Notifications** - User feedback  
-✅ **Responsive UI** - Works on all devices  
+✅ **Mock Wallet Mode** - Test without real wallet
+✅ **Multi-Token Support** - Support for multiple dice contracts
+✅ **Recent Bets Display** - Real-time bet history with auto-refresh
+✅ **Pending Transaction Tracking** - Monitor unconfirmed bets
+- **Mock Balance**: 1,000 HTR  
 
 ## File Structure
 

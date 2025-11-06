@@ -11,74 +11,20 @@ import PlaceBetCard from '@/components/PlaceBetCard';
 import AddLiquidityCard from '@/components/AddLiquidityCard';
 import RemoveLiquidityCard from '@/components/RemoveLiquidityCard';
 import WithdrawCard from '@/components/WithdrawCard';
-import { ContractInfoPanel } from '@/components/ContractInfoPanel';
+import { ContractInfoCompact } from '@/components/ContractInfoCompact';
 import { NetworkSelector } from '@/components/NetworkSelector';
-import { Bet } from '@/types';
-
-const mockBets: Bet[] = [
-  {
-    id: '1',
-    player: '0x7a3f...9b2c',
-    amount: 100,
-    threshold: 32768,
-    result: 'win',
-    payout: 195.31,
-    token: 'HTR',
-    timestamp: Date.now(),
-    isYourBet: true,
-  },
-  {
-    id: '2',
-    player: '0x9f2a...3c1d',
-    amount: 50,
-    threshold: 16384,
-    result: 'lose',
-    payout: 0,
-    token: 'HTR',
-    timestamp: Date.now() - 120000,
-  },
-  {
-    id: '3',
-    player: '0x7a3f...9b2c',
-    amount: 200,
-    threshold: 49152,
-    result: 'win',
-    payout: 266.24,
-    token: 'HTR',
-    timestamp: Date.now() - 300000,
-    isYourBet: true,
-  },
-  {
-    id: '4',
-    player: '0x1c5b...7e8f',
-    amount: 75,
-    threshold: 8192,
-    result: 'lose',
-    payout: 0,
-    token: 'HTR',
-    timestamp: Date.now() - 450000,
-  },
-  {
-    id: '5',
-    player: '0x6d9a...2f4b',
-    amount: 150,
-    threshold: 40960,
-    result: 'win',
-    payout: 239.06,
-    token: 'HTR',
-    timestamp: Date.now() - 600000,
-  },
-];
 
 export default function Home() {
   const { connected } = useWallet();
-  const { network, contractState, switchNetwork, isConnected } = useHathor();
+  const { network, getContractStateForToken, switchNetwork, isConnected } = useHathor();
   const [selectedToken, setSelectedToken] = useState('HTR');
   const [expandedCard, setExpandedCard] = useState<string | null>('placeBet');
 
   const handleCardToggle = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
   };
+
+  const contractState = getContractStateForToken(selectedToken);
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -93,8 +39,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {connected && <BalanceCard selectedToken={selectedToken} />}
-            <ContractInfoPanel contractState={contractState} />
-            <RecentBetsTable bets={mockBets} />
+            <RecentBetsTable />
           </div>
 
           <div className="space-y-6">
@@ -103,6 +48,8 @@ export default function Home() {
                 <h2 className="text-lg font-bold text-white">🎮 GAME ACTIONS</h2>
                 <TokenSelector selectedToken={selectedToken} onTokenChange={setSelectedToken} />
               </div>
+
+              <ContractInfoCompact contractState={contractState} token={selectedToken} />
 
               <div className="space-y-4">
                 <PlaceBetCard
