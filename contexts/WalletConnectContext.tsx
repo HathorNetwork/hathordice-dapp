@@ -144,10 +144,18 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
         return;
       }
 
+      let unsubscribe: (() => void) | undefined;
+
       try {
         const requiredNamespaces = {
           hathor: {
-            methods: ['htr_getAddress', 'htr_getBalance', 'htr_getUtxos', 'htr_signWithAddress', 'htr_sendNanoContractTx'],
+            methods: [
+              'htr_getAddress',
+              'htr_getBalance',
+              'htr_getUtxos',
+              'htr_signWithAddress',
+              'htr_sendNanoContractTx',
+            ],
             chains: ['hathor:testnet'],
             events: [],
           },
@@ -166,13 +174,24 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
           web3Modal.openModal({ uri, standaloneChains });
         }
 
-        const session = await approval();
+        const modalClosedPromise = new Promise<never>((_, reject) => {
+          unsubscribe = web3Modal.subscribeModal((state) => {
+            if (!state.open) {
+              reject(new Error('User closed the modal'));
+            }
+          });
+        });
+
+        const session = await Promise.race([approval(), modalClosedPromise]);
         await onSessionConnected(session);
         setPairings(_client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error('Failed to connect:', e);
         throw e;
       } finally {
+        if (unsubscribe) {
+          unsubscribe();
+        }
         web3Modal.closeModal();
       }
     },
