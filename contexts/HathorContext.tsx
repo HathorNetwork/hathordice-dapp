@@ -26,6 +26,11 @@ interface HathorContextType {
 
 const HathorContext = createContext<HathorContextType | undefined>(undefined);
 
+const TOKEN_UID_MAP: Record<string, string> = {
+  '00': 'HTR',
+  '01': 'USDC',
+};
+
 const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
   'HTR': {
     token_uid: '00',
@@ -34,8 +39,6 @@ const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
     random_bit_length: 16,
     available_tokens: 100000000,
     total_liquidity_provided: 100000000,
-    liquidity_providers: {},
-    balances: {},
   },
   'USDC': {
     token_uid: '01',
@@ -44,8 +47,6 @@ const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
     random_bit_length: 20,
     available_tokens: 50000000,
     total_liquidity_provided: 50000000,
-    liquidity_providers: {},
-    balances: {},
   },
 };
 
@@ -122,7 +123,8 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       const states: Record<string, ContractState> = {};
       for (const contractId of config.contractIds) {
         const state = await coreAPI.getContractState(contractId);
-        states[state.token_uid] = state;
+        const tokenName = TOKEN_UID_MAP[state.token_uid] || state.token_uid;
+        states[tokenName] = state;
       }
       setContractStates(states);
     } catch (error) {
@@ -269,7 +271,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     const amountInCents = Math.floor(betAmount * 100);
 
     const params = {
-      nc_method: 'place_bet',
+      method: 'place_bet',
       nc_id: contractId,
       actions: [
         {

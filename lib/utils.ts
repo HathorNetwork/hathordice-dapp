@@ -8,8 +8,6 @@ export const MIN_THRESHOLD = 1;
 
 export const TOKENS = [
   { value: 'HTR', label: 'HTR' },
-  { value: 'USDC', label: 'USDC' },
-  { value: 'custom', label: 'Custom...' },
 ];
 
 export function calculateMultiplier(threshold: number, randomBitLength: number = 16, houseEdgeBasisPoints: number = 200): number {

@@ -25,6 +25,8 @@ User request: Adding error handling to the RecentBetsTable features list
 - **WalletConnectionModal** - Connect via Reown or Metamask Snaps
 - **NetworkSelector** - Switch between networks
 - **ContractInfoCompact** - Token-specific contract info in Game Actions panel
+  - Updates automatically when token selection changes
+  - Shows token-specific parameters (max bet, house edge, liquidity, random bits)
 - **RecentBetsTable** - Enhanced with:
   - Loading state with spinner
   - Error state with "Try Again" button
