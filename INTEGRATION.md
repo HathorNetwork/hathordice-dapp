@@ -172,7 +172,7 @@ types/
 ```env
 NEXT_PUBLIC_USE_MOCK_WALLET=true
 NEXT_PUBLIC_DEFAULT_NETWORK=india-testnet
-NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india-testnet.hathor.network/v1a
+NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india.testnet.hathor.network/v1a
 NEXT_PUBLIC_HATHOR_NODE_URL_MAINNET=https://node1.mainnet.hathor.network/v1a
 NEXT_PUBLIC_CONTRACT_IDS=["contract_id"]
 ```

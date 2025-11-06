@@ -7,7 +7,7 @@ export class HathorCoreAPI {
   constructor(network: Network) {
     this.baseUrl = network === 'mainnet' 
       ? 'https://node1.mainnet.hathor.network/v1a'
-      : 'https://node1.india-testnet.hathor.network/v1a';
+      : 'https://node1.india.testnet.hathor.network/v1a';
   }
 
   async getBlueprintInfo(blueprintId: string): Promise<BlueprintInfo> {
