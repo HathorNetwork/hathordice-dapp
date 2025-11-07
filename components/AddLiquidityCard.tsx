@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
+import { useHathor } from '@/contexts/HathorContext';
 import { formatNumber } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 
 interface AddLiquidityCardProps {
   selectedToken: string;
@@ -12,12 +14,47 @@ interface AddLiquidityCardProps {
 
 export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }: AddLiquidityCardProps) {
   const { walletBalance, contractBalance } = useWallet();
+  const { isConnected, addLiquidity, getContractStateForToken } = useHathor();
   const totalBalance = walletBalance + contractBalance;
   const [amount, setAmount] = useState(500);
+  const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
+
+  const contractState = getContractStateForToken(selectedToken);
 
   const setQuickAmount = (percentage: number) => {
     setAmount(totalBalance * percentage);
   };
+
+  const handleAddLiquidity = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (amount <= 0) {
+      toast.error('Amount must be positive');
+      return;
+    }
+
+    if (amount > totalBalance) {
+      toast.error('Insufficient balance');
+      return;
+    }
+
+    setIsAddingLiquidity(true);
+    try {
+      const result = await addLiquidity(amount, selectedToken);
+      toast.success(`Liquidity added successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
+      setAmount(0);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add liquidity');
+    } finally {
+      setIsAddingLiquidity(false);
+    }
+  };
+
+  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
+  const houseEdgePercent = (houseEdgeBasisPoints / 100).toFixed(2);
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -54,11 +91,15 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
 
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <span>ℹ️</span>
-            <span>Earn fees from house edge (2%)</span>
+            <span>Earn fees from house edge ({houseEdgePercent}%)</span>
           </div>
 
-          <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-            💧 Add Liquidity
+          <button
+            onClick={handleAddLiquidity}
+            disabled={!isConnected || isAddingLiquidity || amount <= 0}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+          >
+            {isAddingLiquidity ? '⏳ Adding Liquidity...' : '💧 Add Liquidity'}
           </button>
         </div>
       )}

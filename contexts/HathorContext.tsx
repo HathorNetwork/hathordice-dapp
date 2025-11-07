@@ -22,6 +22,7 @@ interface HathorContextType {
   switchNetwork: (network: Network) => Promise<void>;
   refreshContractStates: () => Promise<void>;
   placeBet: (betAmount: number, threshold: number, token: string) => Promise<any>;
+  addLiquidity: (amount: number, token: string) => Promise<any>;
   fetchRecentBets: () => Promise<Bet[]>;
 }
 
@@ -346,6 +347,59 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addLiquidity = async (amount: number, token: string) => {
+    const addr = address || walletConnect.getFirstAddress?.();
+    if (!isConnected || !addr) {
+      throw new Error('Wallet not connected');
+    }
+
+    const contractState = getContractStateForToken(token);
+    if (!contractState) {
+      throw new Error('Contract state not loaded for token');
+    }
+
+    const contractId = tokenContractMap[token];
+    if (!contractId) {
+      throw new Error(`Contract not found for token ${token}`);
+    }
+
+    const amountInCents = Math.floor(amount * 100);
+
+    console.log('Adding liquidity:', {
+      amount,
+      token,
+      contractId,
+      address: addr,
+      amountInCents,
+    });
+
+    const params = {
+      network: 'testnet',
+      nc_id: contractId,
+      method: 'add_liquidity',
+      args: [],
+      actions: [
+        {
+          type: 'deposit' as const,
+          amount: amountInCents.toString(),
+          token: contractState.token_uid,
+        },
+      ],
+      push_tx: true,
+    };
+
+    console.log('Sending add_liquidity nano contract tx with params:', params);
+
+    try {
+      const result = await rpcService.sendNanoContractTx(params);
+      console.log('Liquidity added successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to add liquidity:', error);
+      throw error;
+    }
+  };
+
   return (
     <HathorContext.Provider
       value={{
@@ -361,6 +415,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
         switchNetwork,
         refreshContractStates,
         placeBet,
+        addLiquidity,
         fetchRecentBets,
       }}
     >
