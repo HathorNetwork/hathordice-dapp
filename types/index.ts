@@ -3,6 +3,7 @@ export interface Bet {
   player: string;
   amount: number;
   threshold: number;
+  luckyNumber?: number;
   result: 'win' | 'lose' | 'pending' | 'failed';
   payout: number;
   potentialPayout?: number;

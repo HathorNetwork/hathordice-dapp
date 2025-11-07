@@ -6,6 +6,7 @@ import { useHathor } from '@/contexts/HathorContext';
 import Header from '@/components/Header';
 import BalanceCard from '@/components/BalanceCard';
 import RecentBetsTable from '@/components/RecentBetsTable';
+import RecentOperationsTable from '@/components/RecentOperationsTable';
 import TokenSelector from '@/components/TokenSelector';
 import PlaceBetCard from '@/components/PlaceBetCard';
 import AddLiquidityCard from '@/components/AddLiquidityCard';
@@ -171,6 +172,7 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-6">
             {connected && <BalanceCard selectedToken={selectedToken} />}
             <RecentBetsTable />
+            <RecentOperationsTable selectedToken={selectedToken} />
           </div>
 
           <div className="space-y-6">
@@ -246,11 +248,6 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  {claimableBalance > 0n && !isLoadingClaimable && !claimableError && (
-                    <div className="text-xs text-slate-400 italic">
-                      * Can be used for betting without deposits
-                    </div>
-                  )}
                 </div>
               )}
 

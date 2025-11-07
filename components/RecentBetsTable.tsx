@@ -131,8 +131,10 @@ export default function RecentBetsTable() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Player</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Bet</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Threshold</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Lucky Number</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Result</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Payout</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">TX ID</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
@@ -162,10 +164,27 @@ export default function RecentBetsTable() {
                     {bet.threshold.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-sm">
+                    {bet.luckyNumber !== undefined ? (
+                      <span className="text-slate-300">{bet.luckyNumber.toLocaleString()}</span>
+                    ) : (
+                      <span className="text-slate-500 italic">Unknown</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
                     {getResultDisplay(bet)}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium">
                     {getPayoutDisplay(bet)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-blue-400 font-mono">
+                    <a
+                      href={`https://explorer.testnet.hathor.network/transaction/${bet.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {formatAddress(bet.id)}
+                    </a>
                   </td>
                 </tr>
               ))}
