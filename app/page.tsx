@@ -99,7 +99,7 @@ export default function Home() {
 
     setIsClaiming(true);
     try {
-      const result = await claimBalance(selectedToken, contractId, tokenUid);
+      const result = await claimBalance(amount, selectedToken, contractId, tokenUid);
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
       // Refresh claimable balance
       const claimable = await coreAPI.getClaimableBalance(contractId, address!);

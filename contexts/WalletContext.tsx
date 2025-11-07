@@ -18,7 +18,7 @@ interface WalletContextType {
   placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
-  claimBalance: (token: string, contractId: string, tokenUid: string) => Promise<any>;
+  claimBalance: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   refreshBalance: () => Promise<void>;
 }
 
@@ -253,7 +253,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       args: [amountInCents],
       actions: [
         {
-          type: 'withdrawal' as const,
+          type: 'withdraw' as const,
           amount: amountInCents.toString(),
           token: tokenUid,
         },
@@ -273,15 +273,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const claimBalance = async (token: string, contractId: string, tokenUid: string) => {
+  const claimBalance = async (amount: number, token: string, contractId: string, tokenUid: string) => {
     if (!walletConnect.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
 
+    const amountInCents = Math.floor(amount * 100);
+
     console.log('Claiming balance:', {
+      amount,
       token,
       contractId,
       address,
+      amountInCents,
     });
 
     const params = {
@@ -289,7 +293,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       nc_id: contractId,
       method: 'claim_balance',
       args: [],
-      actions: [],
+      actions: [
+        {
+          type: 'withdraw' as const,
+          amount: amountInCents.toString(),
+          token: tokenUid,
+        },
+      ],
       push_tx: true,
     };
 
