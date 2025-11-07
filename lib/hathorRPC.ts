@@ -65,7 +65,7 @@ export class HathorRPCService {
 
     switch (method) {
       case 'htr_getConnectedNetwork':
-        return { network: 'india-testnet', genesisHash: '0x123...' } as T;
+        return { network: 'testnet', genesisHash: '0x123...' } as T;
 
       case 'htr_getBalance':
         return [{

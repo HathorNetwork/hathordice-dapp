@@ -85,7 +85,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
     setIsPlacingBet(true);
     try {
       const result = await placeBet(betAmount, threshold, selectedToken);
-      toast.success(`Bet placed successfully! TX: ${result.hash?.slice(0, 10)}...`);
+      toast.success(`Bet placed successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to place bet');
     } finally {

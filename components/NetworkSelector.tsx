@@ -16,7 +16,7 @@ export function NetworkSelector({ value, onChange, disabled }: NetworkSelectorPr
         <SelectValue placeholder="Select network" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="india-testnet">India Testnet</SelectItem>
+        <SelectItem value="testnet">India Testnet</SelectItem>
         <SelectItem value="mainnet" disabled>
           Mainnet (Coming Soon)
         </SelectItem>

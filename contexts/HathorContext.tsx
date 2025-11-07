@@ -95,7 +95,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
     try {
       const balanceInfo = await rpcService.getBalance({
-        network: network,
+        network: 'testnet',
         tokens: ['00'],
       });
       setBalance(balanceInfo[0]?.balance?.unlocked || 0);
@@ -319,17 +319,17 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     });
 
     const params = {
-      method: 'place_bet',
+      network: 'testnet',
       nc_id: contractId,
+      method: 'place_bet',
+      args: [amountInCents, threshold],
       actions: [
         {
           type: 'deposit' as const,
           amount: amountInCents.toString(),
           token: contractState.token_uid,
-          address: addr,
         },
       ],
-      args: [amountInCents, threshold],
       push_tx: true,
     };
 
