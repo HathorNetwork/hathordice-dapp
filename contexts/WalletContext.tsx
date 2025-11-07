@@ -4,7 +4,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { WalletState } from '@/types';
 import { HathorRPCService } from '@/lib/hathorRPC';
 import { useWalletConnect } from './WalletConnectContext';
+import { useMetaMask } from './MetaMaskContext';
 import { config } from '@/lib/config';
+
+type WalletType = 'walletconnect' | 'metamask' | null;
 
 interface WalletContextType {
   connected: boolean;
@@ -35,10 +38,12 @@ interface BalanceCache {
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const walletConnect = useWalletConnect();
+  const metaMask = useMetaMask();
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<bigint>(0n);
   const [contractBalance, setContractBalance] = useState(0);
+  const [walletType, setWalletType] = useState<WalletType>(null);
   const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet, walletConnect.client, walletConnect.session));
 
   // Load cached balance from localStorage
@@ -110,24 +115,49 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Update rpcService when walletConnect changes
+  // Detect wallet type on mount
   useEffect(() => {
-    rpcService.updateClientAndSession(walletConnect.client, walletConnect.session);
-  }, [walletConnect.client, walletConnect.session, rpcService]);
+    const storedWalletType = localStorage.getItem('wallet_type') as WalletType;
+    if (storedWalletType) {
+      setWalletType(storedWalletType);
+    }
+  }, []);
+
+  // Update rpcService based on active wallet
+  useEffect(() => {
+    if (walletType === 'metamask' && metaMask.isConnected) {
+      rpcService.updateClientAndSession(undefined, undefined, metaMask.request);
+    } else if (walletType === 'walletconnect' || (!walletType && walletConnect.isConnected)) {
+      rpcService.updateClientAndSession(walletConnect.client, walletConnect.session, undefined);
+    }
+  }, [walletType, walletConnect.client, walletConnect.session, metaMask.isConnected, metaMask.request, rpcService]);
 
   // Auto-fetch balance when wallet connects
   useEffect(() => {
-    if (walletConnect.isConnected) {
+    // Handle WalletConnect
+    if (walletConnect.isConnected && (walletType === 'walletconnect' || !walletType)) {
       const addr = walletConnect.getFirstAddress?.();
       if (addr) {
+        setWalletType('walletconnect');
+        localStorage.setItem('wallet_type', 'walletconnect');
         setAddress(addr);
         fetchBalance(addr);
       }
-    } else {
+    }
+    // Handle MetaMask
+    else if (metaMask.isConnected && walletType === 'metamask') {
+      if (metaMask.address) {
+        setAddress(metaMask.address);
+        fetchBalance(metaMask.address);
+      }
+    }
+    // Handle disconnection
+    else if (!walletConnect.isConnected && !metaMask.isConnected) {
       setAddress(null);
       setBalance(0n);
+      setWalletType(null);
     }
-  }, [walletConnect.isConnected]);
+  }, [walletConnect.isConnected, metaMask.isConnected, metaMask.address, walletType]);
 
   // Convert balance from cents (bigint) to token units (number) for backwards compatibility
   const walletBalance = typeof balance === 'bigint' ? Number(balance) / 100 : 0;
@@ -147,7 +177,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => {
-    if (!walletConnect.isConnected || !address) {
+    if ((!walletConnect.isConnected && !metaMask.isConnected) || !address) {
       throw new Error('Wallet not connected');
     }
 
@@ -190,7 +220,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const addLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string) => {
-    if (!walletConnect.isConnected || !address) {
+    if ((!walletConnect.isConnected && !metaMask.isConnected) || !address) {
       throw new Error('Wallet not connected');
     }
 
@@ -232,7 +262,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const removeLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string) => {
-    if (!walletConnect.isConnected || !address) {
+    if ((!walletConnect.isConnected && !metaMask.isConnected) || !address) {
       throw new Error('Wallet not connected');
     }
 
@@ -250,12 +280,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       network: 'testnet',
       nc_id: contractId,
       method: 'remove_liquidity',
-      args: [amountInCents],
+      args: [],
       actions: [
         {
-          type: 'withdraw' as const,
+          type: 'withdrawal' as const,
           amount: amountInCents.toString(),
           token: tokenUid,
+          address: address,
         },
       ],
       push_tx: true,
@@ -274,7 +305,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const claimBalance = async (amount: number, token: string, contractId: string, tokenUid: string) => {
-    if (!walletConnect.isConnected || !address) {
+    if ((!walletConnect.isConnected && !metaMask.isConnected) || !address) {
       throw new Error('Wallet not connected');
     }
 
@@ -295,9 +326,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       args: [],
       actions: [
         {
-          type: 'withdraw' as const,
+          type: 'withdrawal' as const,
           amount: amountInCents.toString(),
           token: tokenUid,
+          address: address,
         },
       ],
       push_tx: true,

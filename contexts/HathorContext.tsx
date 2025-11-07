@@ -6,6 +6,7 @@ import { ContractState } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
 import { Bet } from '@/types';
 import { useWalletConnect } from './WalletConnectContext';
+import { useMetaMask } from './MetaMaskContext';
 import { useWallet } from './WalletContext';
 
 interface HathorContextType {
@@ -51,6 +52,7 @@ const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
 
 export function HathorProvider({ children }: { children: ReactNode }) {
   const walletConnect = useWalletConnect();
+  const metaMask = useMetaMask();
   const wallet = useWallet();
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<Network>(config.defaultNetwork);
@@ -58,7 +60,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
   const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(network));
 
-  const isConnected = walletConnect.isConnected;
+  const isConnected = walletConnect.isConnected || metaMask.isConnected;
 
   useEffect(() => {
     setCoreAPI(new HathorCoreAPI(network));
@@ -71,13 +73,18 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isConnected) {
       refreshContractStates();
-      const addr = walletConnect.getFirstAddress();
-      setAddress(addr);
+      // Get address from the connected wallet
+      if (walletConnect.isConnected) {
+        const addr = walletConnect.getFirstAddress();
+        setAddress(addr);
+      } else if (metaMask.isConnected) {
+        setAddress(metaMask.address);
+      }
     } else {
       setAddress(null);
       wallet.setBalance(0n);
     }
-  }, [isConnected, network, walletConnect]);
+  }, [isConnected, network, walletConnect, metaMask]);
 
   const connectWallet = async () => {
     try {
@@ -91,8 +98,16 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
   const disconnectWallet = async () => {
     try {
-      await walletConnect.disconnect();
-      // walletConnect context will update isConnected; effect above will clear address/balance
+      // Disconnect whichever wallet is connected
+      if (walletConnect.isConnected) {
+        await walletConnect.disconnect();
+      }
+      if (metaMask.isConnected) {
+        await metaMask.disconnect();
+      }
+      // Clear wallet type from localStorage
+      localStorage.removeItem('wallet_type');
+      // wallet contexts will update isConnected; effect above will clear address/balance
     } catch (error) {
       console.error('Failed to disconnect wallet:', error);
       // don't rethrow to avoid breaking UI flows

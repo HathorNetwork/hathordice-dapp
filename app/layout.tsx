@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { HathorProvider } from '@/contexts/HathorContext';
 import { WalletConnectProvider } from '@/contexts/WalletConnectContext';
+import { MetaMaskProvider } from '@/contexts/MetaMaskContext';
 import { ToastProvider, Toaster } from '@/lib/toast';
 import './globals.css';
 
@@ -20,12 +21,14 @@ export default function RootLayout({
       <body>
         <ToastProvider>
           <WalletConnectProvider>
-            <WalletProvider>
-              <HathorProvider>
-                {children}
-                <Toaster />
-              </HathorProvider>
-            </WalletProvider>
+            <MetaMaskProvider>
+              <WalletProvider>
+                <HathorProvider>
+                  {children}
+                  <Toaster />
+                </HathorProvider>
+              </WalletProvider>
+            </MetaMaskProvider>
           </WalletConnectProvider>
         </ToastProvider>
       </body>

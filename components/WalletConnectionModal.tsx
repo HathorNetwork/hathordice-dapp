@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWalletConnect } from '@/contexts/WalletConnectContext';
+import { useMetaMask } from '@/contexts/MetaMaskContext';
 import { useState, useEffect } from 'react';
 
 interface WalletConnectionModalProps {
@@ -11,13 +12,16 @@ interface WalletConnectionModalProps {
 }
 
 export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionModalProps) {
-  const { connect, isInitializing } = useWalletConnect();
+  const { connect: connectWalletConnect, isInitializing } = useWalletConnect();
+  const { connect: connectMetaMask, isInstalled: isMetaMaskInstalled } = useMetaMask();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingWallet, setConnectingWallet] = useState<'reown' | 'metamask' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setIsConnecting(false);
+      setConnectingWallet(null);
       setError(null);
     }
   }, [open]);
@@ -25,26 +29,54 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
   const handleReownConnect = async () => {
     try {
       setIsConnecting(true);
+      setConnectingWallet('reown');
       setError(null);
-      await connect();
+      await connectWalletConnect();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Failed to connect via Reown:', error);
       if (error?.message?.includes('not initialized yet')) {
         setError('Wallet is initializing. Please wait a moment and try again.');
+      } else if (error?.message?.includes('User closed the modal')) {
+        setError(null); // User intentionally closed, don't show error
       } else {
         setError('Failed to connect. Please try again.');
       }
     } finally {
       setIsConnecting(false);
+      setConnectingWallet(null);
     }
   };
 
   const handleMetamaskConnect = async () => {
-    setError('Metamask Snaps integration coming soon!');
+    if (!isMetaMaskInstalled) {
+      setError('MetaMask is not installed. Please install MetaMask extension first.');
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+      setConnectingWallet('metamask');
+      setError(null);
+      await connectMetaMask();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Failed to connect via MetaMask:', error);
+      if (error?.message?.includes('not installed')) {
+        setError('MetaMask is not installed. Please install MetaMask extension first.');
+      } else if (error?.message?.includes('User rejected')) {
+        setError(null); // User intentionally rejected, don't show error
+      } else {
+        setError(error?.message || 'Failed to connect to MetaMask. Please try again.');
+      }
+    } finally {
+      setIsConnecting(false);
+      setConnectingWallet(null);
+    }
   };
 
-  const isButtonDisabled = isConnecting || isInitializing;
+  const isReownButtonDisabled = isConnecting || isInitializing;
+  const isMetaMaskButtonDisabled = isConnecting || !isMetaMaskInstalled;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,19 +102,19 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
             onClick={handleReownConnect}
             className="w-full flex items-center justify-center gap-2"
             variant="outline"
-            disabled={isButtonDisabled}
+            disabled={isReownButtonDisabled}
           >
             <span className="text-xl">👛</span>
-            {isConnecting ? 'Connecting...' : isInitializing ? 'Initializing...' : 'Connect via Reown'}
+            {connectingWallet === 'reown' ? 'Connecting...' : isInitializing ? 'Initializing...' : 'Connect via Reown'}
           </Button>
           <Button
             onClick={handleMetamaskConnect}
             className="w-full flex items-center justify-center gap-2"
             variant="outline"
-            disabled={true}
+            disabled={isMetaMaskButtonDisabled}
           >
             <span className="text-xl">🦊</span>
-            Connect via Metamask Snaps (Coming Soon)
+            {connectingWallet === 'metamask' ? 'Connecting...' : !isMetaMaskInstalled ? 'Install MetaMask First' : 'Connect via MetaMask Snaps'}
           </Button>
         </div>
       </DialogContent>

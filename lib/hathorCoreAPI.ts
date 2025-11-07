@@ -90,8 +90,8 @@ export class HathorCoreAPI {
   }
 
   async getMaximumLiquidityRemoval(contractId: string, callerAddress: string): Promise<bigint> {
-    const result = await this.callViewFunction(contractId, 'calculate_maximum_liquidity_removal', [], callerAddress);
-    // The result is in calls['calculate_maximum_liquidity_removal()'].value
+    const result = await this.callViewFunction(contractId, 'calculate_address_maximum_liquidity_removal', [callerAddress], callerAddress);
+    // The result is in calls['calculate_address_maximum_liquidity_removal()'].value
     if (result.calls) {
       // Get the first (and should be only) call result
       const callKey = Object.keys(result.calls)[0];

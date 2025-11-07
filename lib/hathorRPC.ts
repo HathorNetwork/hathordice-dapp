@@ -2,20 +2,25 @@ import { HathorRPCRequest, HathorRPCResponse, GetBalanceParams, GetAddressParams
 import Client from '@walletconnect/sign-client';
 import { SessionTypes } from '@walletconnect/types';
 
+type RequestFunction = <T = any>(method: string, params?: any) => Promise<T>;
+
 export class HathorRPCService {
   private useMock: boolean;
   private client: Client | undefined;
   private session: SessionTypes.Struct | undefined;
+  private customRequest: RequestFunction | undefined;
 
-  constructor(useMock: boolean = false, client?: Client, session?: SessionTypes.Struct) {
+  constructor(useMock: boolean = false, client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction) {
     this.useMock = useMock;
     this.client = client;
     this.session = session;
+    this.customRequest = customRequest;
   }
 
-  updateClientAndSession(client?: Client, session?: SessionTypes.Struct) {
+  updateClientAndSession(client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction) {
     this.client = client;
     this.session = session;
+    this.customRequest = customRequest;
   }
 
   async request<T = any>(method: string, params?: any): Promise<T> {
@@ -23,8 +28,20 @@ export class HathorRPCService {
       return this.mockRequest<T>(method, params);
     }
 
+    // Use custom request function if provided (e.g., MetaMask)
+    if (this.customRequest) {
+      try {
+        const result = await this.customRequest<T>(method, params);
+        return result;
+      } catch (error: any) {
+        console.error('RPC request failed:', error);
+        throw new Error(error?.message || 'RPC request failed');
+      }
+    }
+
+    // Fall back to WalletConnect
     if (!this.client || !this.session) {
-      throw new Error('Wallet not connected. Please connect via Reown.');
+      throw new Error('Wallet not connected. Please connect your wallet.');
     }
 
     try {
