@@ -23,6 +23,15 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
+const BALANCE_CACHE_KEY = 'hathor_balance_cache';
+const BALANCE_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+interface BalanceCache {
+  balance: string; // Store as string since bigint can't be JSON serialized
+  timestamp: number;
+  address: string;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const walletConnect = useWalletConnect();
   const [connected, setConnected] = useState(false);
@@ -31,13 +40,61 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [contractBalance, setContractBalance] = useState(0);
   const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet, walletConnect.client, walletConnect.session));
 
+  // Load cached balance from localStorage
+  const loadCachedBalance = (addr: string): bigint | null => {
+    try {
+      const cached = localStorage.getItem(BALANCE_CACHE_KEY);
+      if (!cached) return null;
+
+      const cache: BalanceCache = JSON.parse(cached);
+      const now = Date.now();
+
+      // Check if cache is for the same address and is still valid (less than 15 minutes old)
+      if (cache.address === addr && (now - cache.timestamp) < BALANCE_CACHE_DURATION) {
+        return BigInt(cache.balance);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Failed to load cached balance:', error);
+      return null;
+    }
+  };
+
+  // Save balance to cache
+  const saveCachedBalance = (addr: string, bal: bigint) => {
+    try {
+      const cache: BalanceCache = {
+        balance: bal.toString(),
+        timestamp: Date.now(),
+        address: addr,
+      };
+      localStorage.setItem(BALANCE_CACHE_KEY, JSON.stringify(cache));
+    } catch (error) {
+      console.error('Failed to save cached balance:', error);
+    }
+  };
+
   // Define fetchBalance before it's used in useEffect
-  const fetchBalance = async (addr: string) => {
+  const fetchBalance = async (addr: string, forceRefresh: boolean = false) => {
     if (!addr) return;
+
+    // Check cache first unless forced refresh
+    if (!forceRefresh) {
+      const cachedBalance = loadCachedBalance(addr);
+      if (cachedBalance !== null) {
+        console.log('Using cached balance');
+        setBalance(cachedBalance);
+        return;
+      }
+    }
+
     if (config.useMockWallet) {
       setBalance(100000n);
+      saveCachedBalance(addr, 100000n);
       return;
     }
+
     try {
       const balanceInfo = await rpcService.getBalance({
         network: 'testnet',
@@ -45,6 +102,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       });
       const balance = balanceInfo.response[0]?.balance?.unlocked || 0n;
       setBalance(balance);
+      saveCachedBalance(addr, balance);
     } catch (error: any) {
       console.log('Balance fetch was rejected or failed. This is normal if the wallet requires manual approval.');
       setBalance(0n);
