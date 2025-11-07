@@ -62,4 +62,38 @@ export class HathorCoreAPI {
     }
     return response.json();
   }
+
+  async callViewFunction(contractId: string, method: string, args: any[] = [], callerAddress?: string): Promise<any> {
+    const body: any = {
+      id: contractId,
+      method,
+      args,
+    };
+
+    if (callerAddress) {
+      body.caller = callerAddress;
+    }
+
+	const queryString = `calls[]=${method}(${args})`;
+    const response = await fetch(`${this.baseUrl}/nano_contract/state?id=${contractId}&${queryString}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to call view function: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  async getMaximumLiquidityRemoval(contractId: string, callerAddress: string): Promise<bigint> {
+    const result = await this.callViewFunction(contractId, 'calculate_maximum_liquidity_removal', [], callerAddress);
+    // The result should contain the maximum amount that can be removed
+    return BigInt(result.result || 0);
+  }
 }

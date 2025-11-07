@@ -17,6 +17,7 @@ interface WalletContextType {
   setBalance: (balance: bigint) => void;
   placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
+  removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -170,6 +171,48 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const removeLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string) => {
+    if (!walletConnect.isConnected || !address) {
+      throw new Error('Wallet not connected');
+    }
+
+    const amountInCents = Math.floor(amount * 100);
+
+    console.log('Removing liquidity:', {
+      amount,
+      token,
+      contractId,
+      address,
+      amountInCents,
+    });
+
+    const params = {
+      network: 'testnet',
+      nc_id: contractId,
+      method: 'remove_liquidity',
+      args: [amountInCents],
+      actions: [
+        {
+          type: 'withdrawal' as const,
+          amount: amountInCents.toString(),
+          token: tokenUid,
+        },
+      ],
+      push_tx: true,
+    };
+
+    console.log('Sending remove_liquidity nano contract tx with params:', params);
+
+    try {
+      const result = await rpcService.sendNanoContractTx(params);
+      console.log('Liquidity removed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to remove liquidity:', error);
+      throw error;
+    }
+  };
+
   return (
     <WalletContext.Provider value={{
       connected,
@@ -182,6 +225,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setBalance,
       placeBet,
       addLiquidity,
+      removeLiquidity,
     }}>
       {children}
     </WalletContext.Provider>
