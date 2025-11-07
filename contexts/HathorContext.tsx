@@ -7,11 +7,11 @@ import { ContractState } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
 import { Bet } from '@/types';
 import { useWalletConnect } from './WalletConnectContext';
+import { useWallet } from './WalletContext';
 
 interface HathorContextType {
   isConnected: boolean;
   address: string | null;
-  balance: number;
   network: Network;
   contractStates: Record<string, ContractState>;
   getContractStateForToken: (token: string) => ContractState | null;
@@ -35,26 +35,26 @@ const TOKEN_UID_MAP: Record<string, string> = {
 const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
   'HTR': {
     token_uid: '00',
-    max_bet_amount: 10000,
+    max_bet_amount: 10000n,
     house_edge_basis_points: 190,
     random_bit_length: 16,
-    available_tokens: 100000000,
-    total_liquidity_provided: 100000000,
+    available_tokens: 100000000n,
+    total_liquidity_provided: 100000000n,
   },
   'USDC': {
     token_uid: '01',
-    max_bet_amount: 5000,
+    max_bet_amount: 5000n,
     house_edge_basis_points: 250,
     random_bit_length: 20,
-    available_tokens: 50000000,
-    total_liquidity_provided: 50000000,
+    available_tokens: 50000000n,
+    total_liquidity_provided: 50000000n,
   },
 };
 
 export function HathorProvider({ children }: { children: ReactNode }) {
   const walletConnect = useWalletConnect();
+  const wallet = useWallet();
   const [address, setAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState(0);
   const [network, setNetwork] = useState<Network>(config.defaultNetwork);
   const [contractStates, setContractStates] = useState<Record<string, ContractState>>({});
   const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
@@ -83,14 +83,14 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       if (addr) fetchBalance(addr);
     } else {
       setAddress(null);
-      setBalance(0);
+      wallet.setBalance(0n);
     }
-  }, [isConnected, network, walletConnect]);
+  }, [isConnected, network, walletConnect, wallet]);
 
   const fetchBalance = async (addr: string) => {
     if (!addr) return;
     if (config.useMockWallet) {
-      setBalance(1000);
+      wallet.setBalance(100000n);
       return;
     }
     try {
@@ -98,10 +98,11 @@ export function HathorProvider({ children }: { children: ReactNode }) {
         network: 'testnet',
         tokens: ['00'],
       });
-      setBalance(balanceInfo[0]?.balance?.unlocked || 0);
+	  const balance = balanceInfo.response[0]?.balance?.unlocked || 0n;
+      wallet.setBalance(balance);
     } catch (error: any) {
       console.log('Balance fetch was rejected or failed. This is normal if the wallet requires manual approval.');
-      setBalance(0);
+      wallet.setBalance(0n);
     }
   };
 
@@ -350,7 +351,6 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       value={{
         isConnected,
         address,
-        balance,
         network,
         contractStates,
         getContractStateForToken,

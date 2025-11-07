@@ -13,9 +13,10 @@ import RemoveLiquidityCard from '@/components/RemoveLiquidityCard';
 import WithdrawCard from '@/components/WithdrawCard';
 import { ContractInfoCompact } from '@/components/ContractInfoCompact';
 import { NetworkSelector } from '@/components/NetworkSelector';
+import { formatBalance } from '@/lib/utils';
 
 export default function Home() {
-  const { connected } = useWallet();
+  const { connected, balance } = useWallet();
   const { network, getContractStateForToken, switchNetwork, isConnected } = useHathor();
   const [selectedToken, setSelectedToken] = useState('HTR');
   const [expandedCard, setExpandedCard] = useState<string | null>('placeBet');
@@ -50,6 +51,21 @@ export default function Home() {
               </div>
 
               <ContractInfoCompact contractState={contractState} token={selectedToken} />
+
+              {isConnected && (
+                <div className="mb-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 text-sm font-medium">Wallet Balance:</span>
+                    <span className="text-white font-bold">
+                      {balance > 0n ? (
+                        `${formatBalance(balance)} ${selectedToken}`
+                      ) : (
+                        <span className="text-slate-400 text-xs">Authorize to view balance</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <PlaceBetCard

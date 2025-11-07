@@ -20,12 +20,12 @@ export default function RootLayout({
       <body>
         <ToastProvider>
           <WalletConnectProvider>
-            <HathorProvider>
-              <WalletProvider>
+            <WalletProvider>
+              <HathorProvider>
                 {children}
                 <Toaster />
-              </WalletProvider>
-            </HathorProvider>
+              </HathorProvider>
+            </WalletProvider>
           </WalletConnectProvider>
         </ToastProvider>
       </body>

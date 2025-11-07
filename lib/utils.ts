@@ -44,3 +44,21 @@ export function formatNumber(num: number, decimals: number = 2): string {
 export function formatTokenAmount(amount: number, decimals: number = 2): string {
   return (amount / 100).toFixed(decimals);
 }
+
+export function formatBalance(balance: bigint | number, decimals: number = 2): string {
+  if (typeof balance === 'bigint') {
+    // Convert BigInt to string to avoid precision loss with large numbers
+    const balanceStr = balance.toString();
+
+    // Pad with zeros if needed (for values less than 100)
+    const paddedStr = balanceStr.padStart(decimals + 1, '0');
+
+    // Insert decimal point
+    const decimalPosition = paddedStr.length - decimals;
+    const integerPart = paddedStr.slice(0, decimalPosition);
+    const decimalPart = paddedStr.slice(decimalPosition);
+
+    return `${integerPart}.${decimalPart}`;
+  }
+  return (balance / 100).toFixed(decimals);
+}

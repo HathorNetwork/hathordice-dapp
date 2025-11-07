@@ -1,10 +1,10 @@
 export interface ContractState {
   token_uid: string;
-  max_bet_amount: number;
+  max_bet_amount: bigint;
   house_edge_basis_points: number;
   random_bit_length: number;
-  available_tokens: number;
-  total_liquidity_provided: number;
+  available_tokens: bigint;
+  total_liquidity_provided: bigint;
 }
 
 export interface BlueprintInfo {
