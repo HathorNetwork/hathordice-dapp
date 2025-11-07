@@ -83,9 +83,10 @@ export class HathorRPCService {
 
       case 'htr_sendNanoContractTx':
         return {
-          hash: '0xabc123...',
+          hash: '00000000' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
           success: true,
           timestamp: Date.now(),
+          nonce: Math.floor(Math.random() * 1000000),
         } as T;
 
       default:

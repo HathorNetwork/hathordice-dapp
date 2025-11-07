@@ -11,7 +11,7 @@ interface WalletConnectionModalProps {
 }
 
 export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionModalProps) {
-  const { connect } = useWalletConnect();
+  const { connect, isInitializing } = useWalletConnect();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +28,13 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
       setError(null);
       await connect();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to connect via Reown:', error);
-      setError('Failed to connect. Please try again.');
+      if (error?.message?.includes('not initialized yet')) {
+        setError('Wallet is initializing. Please wait a moment and try again.');
+      } else {
+        setError('Failed to connect. Please try again.');
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -39,6 +43,8 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
   const handleMetamaskConnect = async () => {
     setError('Metamask Snaps integration coming soon!');
   };
+
+  const isButtonDisabled = isConnecting || isInitializing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,14 +61,19 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
               {error}
             </div>
           )}
+          {isInitializing && (
+            <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-3 text-sm text-blue-400">
+              Initializing wallet connection...
+            </div>
+          )}
           <Button
             onClick={handleReownConnect}
             className="w-full flex items-center justify-center gap-2"
             variant="outline"
-            disabled={isConnecting}
+            disabled={isButtonDisabled}
           >
             <span className="text-xl">👛</span>
-            {isConnecting ? 'Connecting...' : 'Connect via Reown'}
+            {isConnecting ? 'Connecting...' : isInitializing ? 'Initializing...' : 'Connect via Reown'}
           </Button>
           <Button
             onClick={handleMetamaskConnect}

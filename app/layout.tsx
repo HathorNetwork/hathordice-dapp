@@ -23,7 +23,7 @@ export default function RootLayout({
             <HathorProvider>
               <WalletProvider>
                 {children}
-                <Toaster position="top-right" />
+                <Toaster />
               </WalletProvider>
             </HathorProvider>
           </WalletConnectProvider>

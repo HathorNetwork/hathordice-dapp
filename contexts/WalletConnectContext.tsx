@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import Client from '@walletconnect/sign-client';
 import { PairingTypes, SessionTypes } from '@walletconnect/types';
 import { Web3Modal } from '@web3modal/standalone';
@@ -19,6 +19,7 @@ interface IWalletConnectContext {
   setChains: React.Dispatch<React.SetStateAction<string[]>>;
   getFirstAddress: () => string;
   isConnected: boolean;
+  isInitializing: boolean;
 }
 
 const WalletConnectContext = createContext<IWalletConnectContext>({} as IWalletConnectContext);
@@ -36,6 +37,8 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
   const [accounts, setAccounts] = useState<string[]>([]);
   const [chains, setChains] = useState<string[]>([]);
   const [clientInitialized, setClientInitialized] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const initializationAttempted = useRef(false);
 
   const reset = () => {
     setSession(undefined);
@@ -124,20 +127,28 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
     }
   }, [client, clientInitialized, subscribeToEvents, checkPersistedState]);
 
+  useEffect(() => {
+    if (initializationAttempted.current || isInitializing || client) return;
+
+    initializationAttempted.current = true;
+    setIsInitializing(true);
+    (async () => {
+      try {
+        const _client = await initializeWalletConnectClient();
+        setClient(_client);
+      } catch (error) {
+        console.error('Failed to initialize WalletConnect on mount:', error);
+        initializationAttempted.current = false;
+      } finally {
+        setIsInitializing(false);
+      }
+    })();
+  }, []);
+
   const connect = useCallback(
     async (pairing: { topic: string } | undefined) => {
-      let _client = client;
-
-      if (!_client) {
-        try {
-          _client = await initializeWalletConnectClient();
-          setClient(_client);
-          await subscribeToEvents(_client);
-          await checkPersistedState(_client);
-        } catch (error) {
-          console.error('Failed to initialize WalletConnect:', error);
-          throw error;
-        }
+      if (!client) {
+        throw new Error('WalletConnect client is not initialized yet. Please wait a moment and try again.');
       }
 
       if (session) {
@@ -161,7 +172,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
           },
         };
 
-        const { uri, approval } = await _client.connect({
+        const { uri, approval } = await client.connect({
           pairingTopic: pairing?.topic,
           requiredNamespaces,
         });
@@ -184,7 +195,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
 
         const session = await Promise.race([approval(), modalClosedPromise]);
         await onSessionConnected(session);
-        setPairings(_client.pairing.getAll({ active: true }));
+        setPairings(client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error('Failed to connect:', e);
         throw e;
@@ -195,7 +206,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
         web3Modal.closeModal();
       }
     },
-    [client, session, onSessionConnected, subscribeToEvents, checkPersistedState]
+    [client, session, onSessionConnected]
   );
 
   const disconnect = useCallback(async () => {
@@ -230,8 +241,9 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
       getFirstAddress,
       setChains,
       isConnected: !!session,
+      isInitializing,
     }),
-    [pairings, accounts, chains, client, session, connect, disconnect, getFirstAddress, setChains]
+    [pairings, accounts, chains, client, session, connect, disconnect, getFirstAddress, setChains, isInitializing]
   );
 
   return <WalletConnectContext.Provider value={value}>{children}</WalletConnectContext.Provider>;

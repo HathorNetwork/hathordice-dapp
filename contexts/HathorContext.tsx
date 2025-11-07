@@ -144,8 +144,10 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const refreshContractStates = async () => {
     if (config.useMockWallet) {
       setContractStates(MOCK_CONTRACT_STATES);
-      // build token -> contractId map for mocks if possible (we don't have ids here)
-      setTokenContractMap({});
+      setTokenContractMap({
+        'HTR': 'mock-contract-htr',
+        'USDC': 'mock-contract-usdc',
+      });
       return;
     }
 
@@ -297,10 +299,19 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
     const contractId = tokenContractMap[token];
     if (!contractId) {
-      throw new Error('Contract not found for token');
+      throw new Error(`Contract not found for token ${token}`);
     }
 
     const amountInCents = Math.floor(betAmount * 100);
+
+    console.log('Placing bet:', {
+      betAmount,
+      threshold,
+      token,
+      contractId,
+      address: addr,
+      amountInCents,
+    });
 
     const params = {
       method: 'place_bet',
@@ -317,8 +328,16 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       push_tx: true,
     };
 
-    // rpcService is constructed with walletConnect client/session so it should route the tx via wallet
-    return rpcService.sendNanoContractTx(params);
+    console.log('Sending nano contract tx with params:', params);
+
+    try {
+      const result = await rpcService.sendNanoContractTx(params);
+      console.log('Bet placed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to place bet:', error);
+      throw error;
+    }
   };
 
   return (
