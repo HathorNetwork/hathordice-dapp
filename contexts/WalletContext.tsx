@@ -18,6 +18,7 @@ interface WalletContextType {
   placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
+  claimBalance: (token: string, contractId: string, tokenUid: string) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -213,6 +214,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const claimBalance = async (token: string, contractId: string, tokenUid: string) => {
+    if (!walletConnect.isConnected || !address) {
+      throw new Error('Wallet not connected');
+    }
+
+    console.log('Claiming balance:', {
+      token,
+      contractId,
+      address,
+    });
+
+    const params = {
+      network: 'testnet',
+      nc_id: contractId,
+      method: 'claim_balance',
+      args: [],
+      actions: [],
+      push_tx: true,
+    };
+
+    console.log('Sending claim_balance nano contract tx with params:', params);
+
+    try {
+      const result = await rpcService.sendNanoContractTx(params);
+      console.log('Balance claimed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to claim balance:', error);
+      throw error;
+    }
+  };
+
   return (
     <WalletContext.Provider value={{
       connected,
@@ -226,6 +259,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       placeBet,
       addLiquidity,
       removeLiquidity,
+      claimBalance,
     }}>
       {children}
     </WalletContext.Provider>

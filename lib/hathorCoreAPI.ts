@@ -74,14 +74,12 @@ export class HathorCoreAPI {
       body.caller = callerAddress;
     }
 
-	const queryString = `calls[]=${method}(${args})`;
-    const response = await fetch(`${this.baseUrl}/nano_contract/state?id=${contractId}&${queryString}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    // Construct query parameters properly
+    const params = new URLSearchParams();
+    params.append('id', contractId);
+    params.append('calls[]', `${method}(${args.map(JSON.stringify).join(', ')})`);
+
+    const response = await fetch(`${this.baseUrl}/nano_contract/state?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error(`Failed to call view function: ${response.statusText}`);
@@ -94,6 +92,12 @@ export class HathorCoreAPI {
   async getMaximumLiquidityRemoval(contractId: string, callerAddress: string): Promise<bigint> {
     const result = await this.callViewFunction(contractId, 'calculate_maximum_liquidity_removal', [], callerAddress);
     // The result should contain the maximum amount that can be removed
+    return BigInt(result.result || 0);
+  }
+
+  async getClaimableBalance(contractId: string, callerAddress: string): Promise<bigint> {
+    const result = await this.callViewFunction(contractId, 'get_address_balance', [callerAddress], callerAddress);
+    // The result should contain the claimable balance for the caller
     return BigInt(result.result || 0);
   }
 }
