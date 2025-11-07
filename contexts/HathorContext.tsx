@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { HathorRPCService } from '@/lib/hathorRPC';
 import { HathorCoreAPI } from '@/lib/hathorCoreAPI';
 import { ContractState } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
@@ -15,14 +14,12 @@ interface HathorContextType {
   network: Network;
   contractStates: Record<string, ContractState>;
   getContractStateForToken: (token: string) => ContractState | null;
-  rpcService: HathorRPCService;
+  getContractIdForToken: (token: string) => string | null;
   coreAPI: HathorCoreAPI;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
   switchNetwork: (network: Network) => Promise<void>;
   refreshContractStates: () => Promise<void>;
-  placeBet: (betAmount: number, threshold: number, token: string) => Promise<any>;
-  addLiquidity: (amount: number, token: string) => Promise<any>;
   fetchRecentBets: () => Promise<Bet[]>;
 }
 
@@ -59,14 +56,9 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const [network, setNetwork] = useState<Network>(config.defaultNetwork);
   const [contractStates, setContractStates] = useState<Record<string, ContractState>>({});
   const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
-  const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet, walletConnect.client, walletConnect.session));
   const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(network));
 
   const isConnected = walletConnect.isConnected;
-
-  useEffect(() => {
-    rpcService.updateClientAndSession(walletConnect.client, walletConnect.session);
-  }, [walletConnect.client, walletConnect.session, rpcService]);
 
   useEffect(() => {
     setCoreAPI(new HathorCoreAPI(network));
@@ -81,31 +73,11 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       refreshContractStates();
       const addr = walletConnect.getFirstAddress();
       setAddress(addr);
-      if (addr) fetchBalance(addr);
     } else {
       setAddress(null);
       wallet.setBalance(0n);
     }
-  }, [isConnected, network, walletConnect, wallet]);
-
-  const fetchBalance = async (addr: string) => {
-    if (!addr) return;
-    if (config.useMockWallet) {
-      wallet.setBalance(100000n);
-      return;
-    }
-    try {
-      const balanceInfo = await rpcService.getBalance({
-        network: 'testnet',
-        tokens: ['00'],
-      });
-	  const balance = balanceInfo.response[0]?.balance?.unlocked || 0n;
-      wallet.setBalance(balance);
-    } catch (error: any) {
-      console.log('Balance fetch was rejected or failed. This is normal if the wallet requires manual approval.');
-      wallet.setBalance(0n);
-    }
-  };
+  }, [isConnected, network, walletConnect]);
 
   const connectWallet = async () => {
     try {
@@ -139,13 +111,15 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
     if (isConnected) {
       await refreshContractStates();
-      const addr = walletConnect.getFirstAddress?.() || null;
-      if (addr) await fetchBalance(addr);
     }
   };
 
   const getContractStateForToken = (token: string): ContractState | null => {
     return contractStates[token] || null;
+  };
+
+  const getContractIdForToken = (token: string): string | null => {
+    return tokenContractMap[token] || null;
   };
 
   const refreshContractStates = async () => {
@@ -293,113 +267,6 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const placeBet = async (betAmount: number, threshold: number, token: string) => {
-    const addr = address || walletConnect.getFirstAddress?.();
-    if (!isConnected || !addr) {
-      throw new Error('Wallet not connected');
-    }
-
-    const contractState = getContractStateForToken(token);
-    if (!contractState) {
-      throw new Error('Contract state not loaded for token');
-    }
-
-    const contractId = tokenContractMap[token];
-    if (!contractId) {
-      throw new Error(`Contract not found for token ${token}`);
-    }
-
-    const amountInCents = Math.floor(betAmount * 100);
-
-    console.log('Placing bet:', {
-      betAmount,
-      threshold,
-      token,
-      contractId,
-      address: addr,
-      amountInCents,
-    });
-
-    const params = {
-      network: 'testnet',
-      nc_id: contractId,
-      method: 'place_bet',
-      args: [amountInCents, threshold],
-      actions: [
-        {
-          type: 'deposit' as const,
-          amount: amountInCents.toString(),
-          token: contractState.token_uid,
-        },
-      ],
-      push_tx: true,
-    };
-
-    console.log('Sending nano contract tx with params:', params);
-
-    try {
-      const result = await rpcService.sendNanoContractTx(params);
-      console.log('Bet placed successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Failed to place bet:', error);
-      throw error;
-    }
-  };
-
-  const addLiquidity = async (amount: number, token: string) => {
-    const addr = address || walletConnect.getFirstAddress?.();
-    if (!isConnected || !addr) {
-      throw new Error('Wallet not connected');
-    }
-
-    const contractState = getContractStateForToken(token);
-    if (!contractState) {
-      throw new Error('Contract state not loaded for token');
-    }
-
-    const contractId = tokenContractMap[token];
-    if (!contractId) {
-      throw new Error(`Contract not found for token ${token}`);
-    }
-
-    const amountInCents = Math.floor(amount * 100);
-
-    console.log('Adding liquidity:', {
-      amount,
-      token,
-      contractId,
-      address: addr,
-      amountInCents,
-    });
-
-    const params = {
-      network: 'testnet',
-      nc_id: contractId,
-      method: 'add_liquidity',
-      args: [],
-      actions: [
-        {
-          type: 'deposit' as const,
-          amount: amountInCents.toString(),
-          token: contractState.token_uid,
-        },
-      ],
-      push_tx: true,
-    };
-
-    console.log('Sending add_liquidity nano contract tx with params:', params);
-
-    try {
-      const result = await rpcService.sendNanoContractTx(params);
-      console.log('Liquidity added successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Failed to add liquidity:', error);
-      throw error;
-    }
-  };
-
   return (
     <HathorContext.Provider
       value={{
@@ -408,14 +275,12 @@ export function HathorProvider({ children }: { children: ReactNode }) {
         network,
         contractStates,
         getContractStateForToken,
-        rpcService,
+        getContractIdForToken,
         coreAPI,
         connectWallet,
         disconnectWallet,
         switchNetwork,
         refreshContractStates,
-        placeBet,
-        addLiquidity,
         fetchRecentBets,
       }}
     >

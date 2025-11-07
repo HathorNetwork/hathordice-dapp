@@ -13,8 +13,8 @@ interface AddLiquidityCardProps {
 }
 
 export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }: AddLiquidityCardProps) {
-  const { walletBalance, contractBalance } = useWallet();
-  const { isConnected, addLiquidity, getContractStateForToken } = useHathor();
+  const { walletBalance, contractBalance, addLiquidity } = useWallet();
+  const { isConnected, getContractStateForToken, getContractIdForToken } = useHathor();
   const totalBalance = walletBalance + contractBalance;
   const [amount, setAmount] = useState(500);
   const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
@@ -41,9 +41,17 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
       return;
     }
 
+    const contractId = getContractIdForToken(selectedToken);
+    if (!contractId) {
+      toast.error('Contract not found for token');
+      return;
+    }
+
+    const tokenUid = contractState?.token_uid || '00';
+
     setIsAddingLiquidity(true);
     try {
-      const result = await addLiquidity(amount, selectedToken);
+      const result = await addLiquidity(amount, selectedToken, contractId, tokenUid);
       toast.success(`Liquidity added successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
       setAmount(0);
     } catch (error: any) {

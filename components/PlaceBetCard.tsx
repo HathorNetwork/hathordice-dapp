@@ -13,8 +13,8 @@ interface PlaceBetCardProps {
 }
 
 export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: PlaceBetCardProps) {
-  const { walletBalance, contractBalance } = useWallet();
-  const { isConnected, getContractStateForToken, placeBet } = useHathor();
+  const { walletBalance, contractBalance, placeBet } = useWallet();
+  const { isConnected, getContractStateForToken, getContractIdForToken } = useHathor();
   const totalBalance = walletBalance + contractBalance;
 
   const [betAmount, setBetAmount] = useState(100);
@@ -56,7 +56,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
   const setQuickAmount = (percentage: number) => {
     const amount = totalBalance * percentage;
-    const maxAllowed = maxBetAmount / 100;
+    const maxAllowed = Number(maxBetAmount) / 100;
     setBetAmount(Math.min(amount, maxAllowed));
   };
 
@@ -71,9 +71,9 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
       return;
     }
 
-    const maxAllowed = maxBetAmount / 100;
+    const maxAllowed = Number(maxBetAmount) / 100;
     if (betAmount > maxAllowed) {
-      toast.error(`Bet amount exceeds maximum of ${formatTokenAmount(maxBetAmount)} ${selectedToken}`);
+      toast.error(`Bet amount exceeds maximum of ${formatTokenAmount(Number(maxBetAmount))} ${selectedToken}`);
       return;
     }
 
@@ -82,9 +82,17 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
       return;
     }
 
+    const contractId = getContractIdForToken(selectedToken);
+    if (!contractId) {
+      toast.error('Contract not found for token');
+      return;
+    }
+
+    const tokenUid = contractState?.token_uid || '00';
+
     setIsPlacingBet(true);
     try {
-      const result = await placeBet(betAmount, threshold, selectedToken);
+      const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid);
       toast.success(`Bet placed successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to place bet');
@@ -109,7 +117,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
         <div className="p-6 border-t border-slate-700 space-y-4">
           <div>
             <label className="block text-sm text-slate-400 mb-2">
-              Bet Amount (Max: {formatTokenAmount(maxBetAmount)} {selectedToken})
+              Bet Amount (Max: {formatTokenAmount(Number(maxBetAmount))} {selectedToken})
             </label>
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
               <input
@@ -118,7 +126,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
                 onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)}
                 className="flex-1 bg-transparent text-white outline-none"
                 min="0"
-                max={maxBetAmount / 100}
+                max={Number(maxBetAmount) / 100}
                 step="0.01"
               />
               <span className="text-slate-400">{selectedToken}</span>
