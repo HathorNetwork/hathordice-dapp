@@ -91,13 +91,27 @@ export class HathorCoreAPI {
 
   async getMaximumLiquidityRemoval(contractId: string, callerAddress: string): Promise<bigint> {
     const result = await this.callViewFunction(contractId, 'calculate_maximum_liquidity_removal', [], callerAddress);
-    // The result should contain the maximum amount that can be removed
-    return BigInt(result.result || 0);
+    // The result is in calls['calculate_maximum_liquidity_removal()'].value
+    if (result.calls) {
+      // Get the first (and should be only) call result
+      const callKey = Object.keys(result.calls)[0];
+      if (callKey && result.calls[callKey]?.value !== undefined) {
+        return BigInt(result.calls[callKey].value);
+      }
+    }
+    return 0n;
   }
 
   async getClaimableBalance(contractId: string, callerAddress: string): Promise<bigint> {
     const result = await this.callViewFunction(contractId, 'get_address_balance', [callerAddress], callerAddress);
-    // The result should contain the claimable balance for the caller
-    return BigInt(result.result || 0);
+    // The result is in calls['get_address_balance("ADDRESS")'].value
+    if (result.calls) {
+      // Get the first (and should be only) call result
+      const callKey = Object.keys(result.calls)[0];
+      if (callKey && result.calls[callKey]?.value !== undefined) {
+        return BigInt(result.calls[callKey].value);
+      }
+    }
+    return 0n;
   }
 }

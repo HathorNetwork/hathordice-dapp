@@ -19,6 +19,7 @@ interface WalletContextType {
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   claimBalance: (token: string, contractId: string, tokenUid: string) => Promise<any>;
+  refreshBalance: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -304,6 +305,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshBalance = async () => {
+    if (address) {
+      await fetchBalance(address, true); // Force refresh
+    }
+  };
+
   return (
     <WalletContext.Provider value={{
       connected,
@@ -318,6 +325,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addLiquidity,
       removeLiquidity,
       claimBalance,
+      refreshBalance,
     }}>
       {children}
     </WalletContext.Provider>
