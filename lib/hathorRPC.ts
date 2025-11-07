@@ -34,8 +34,6 @@ export class HathorRPCService {
         request: {
           method,
           params,
-          jsonrpc: '2.0',
-          id: Date.now(),
         },
       });
 

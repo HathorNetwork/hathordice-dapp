@@ -89,14 +89,19 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
   const fetchBalance = async (addr: string) => {
     if (!addr) return;
+    if (config.useMockWallet) {
+      setBalance(1000);
+      return;
+    }
     try {
       const balanceInfo = await rpcService.getBalance({
         network: network,
         tokens: ['00'],
       });
       setBalance(balanceInfo[0]?.balance?.unlocked || 0);
-    } catch (error) {
-      console.error('Failed to fetch balance:', error);
+    } catch (error: any) {
+      console.log('Balance fetch was rejected or failed. This is normal if the wallet requires manual approval.');
+      setBalance(0);
     }
   };
 
