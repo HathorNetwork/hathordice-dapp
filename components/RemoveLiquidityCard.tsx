@@ -5,6 +5,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatTokenAmount } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import HelpIcon from '@/components/HelpIcon';
 
 interface RemoveLiquidityCardProps {
   selectedToken: string;
@@ -101,7 +102,10 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
         onClick={onToggle}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/50 transition-colors"
       >
-        <span className="text-white font-medium">💸 REMOVE LIQUIDITY</span>
+        <span className="text-white font-medium flex items-center gap-2">
+          💸 REMOVE LIQUIDITY
+          <HelpIcon text="Withdraw your liquidity from the pool. The maximum removable amount is calculated to ensure the pool can pay out active bets. You cannot remove more than this amount." />
+        </span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
       </button>
       

@@ -5,6 +5,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
 import { calculateMultiplier, calculatePayout, thresholdToWinChance, winChanceToThreshold, formatNumber, formatTokenAmount } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import HelpIcon from '@/components/HelpIcon';
 
 interface PlaceBetCardProps {
   selectedToken: string;
@@ -215,11 +216,17 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
           <div className="bg-slate-900 rounded-lg p-4 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-400">📊 Threshold:</span>
+              <span className="text-sm text-slate-400 flex items-center gap-1">
+                📊 Threshold:
+                <HelpIcon text="The lucky number must be less than or equal to this threshold for you to win. Higher threshold = higher win chance but lower multiplier." />
+              </span>
               <span className="text-white font-medium">{threshold.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-400">💰 Multiplier:</span>
+              <span className="text-sm text-slate-400 flex items-center gap-1">
+                💰 Multiplier:
+                <HelpIcon text="Your bet amount will be multiplied by this number if you win. Lower win chance = higher multiplier." />
+              </span>
               <span className="text-white font-medium">{formatNumber(multiplier)}x</span>
             </div>
             <div className="flex justify-between items-center">

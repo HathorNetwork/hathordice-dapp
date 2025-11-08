@@ -13,6 +13,7 @@ import AddLiquidityCard from '@/components/AddLiquidityCard';
 import RemoveLiquidityCard from '@/components/RemoveLiquidityCard';
 import { ContractInfoCompact } from '@/components/ContractInfoCompact';
 import { NetworkSelector } from '@/components/NetworkSelector';
+import HelpIcon from '@/components/HelpIcon';
 import { formatBalance } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 
@@ -187,7 +188,10 @@ export default function Home() {
               {isConnected && (
                 <div className="mb-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300 text-sm font-medium">Wallet Balance:</span>
+                    <span className="text-slate-300 text-sm font-medium flex items-center gap-1">
+                      Wallet Balance:
+                      <HelpIcon text="Your wallet's token balance. This is stored in your personal wallet and can be used for betting or adding liquidity." />
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-white font-bold">
                         {balance > 0n ? (
@@ -207,7 +211,10 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-600 pt-3">
-                    <span className="text-slate-300 text-sm font-medium">Contract Balance:</span>
+                    <span className="text-slate-300 text-sm font-medium flex items-center gap-1">
+                      Contract Balance:
+                      <HelpIcon text="Your claimable balance held in the contract from previous bet winnings. Can be used for betting, or withdrawn to your wallet." />
+                    </span>
                     <div className="flex items-center gap-2">
                       {isLoadingClaimable || isRefreshingContract ? (
                         <span className="text-slate-400 text-xs">Loading...</span>

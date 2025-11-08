@@ -5,6 +5,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatNumber } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import HelpIcon from '@/components/HelpIcon';
 
 interface AddLiquidityCardProps {
   selectedToken: string;
@@ -70,7 +71,10 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
         onClick={onToggle}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/50 transition-colors"
       >
-        <span className="text-white font-medium">💧 ADD LIQUIDITY</span>
+        <span className="text-white font-medium flex items-center gap-2">
+          💧 ADD LIQUIDITY
+          <HelpIcon text="Provide liquidity to the pool and earn a share of the house edge from all bets. Your liquidity helps pay out winners and you share in the profits when players lose." />
+        </span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
       </button>
       

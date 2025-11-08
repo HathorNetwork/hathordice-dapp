@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bet } from '@/types';
 import { formatNumber, formatAddress } from '@/lib/utils';
 import { useHathor } from '@/contexts/HathorContext';
+import HelpIcon from '@/components/HelpIcon';
 
 export default function RecentBetsTable() {
   const { fetchRecentBets } = useHathor();
@@ -131,7 +132,12 @@ export default function RecentBetsTable() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Player</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Bet</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Threshold</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Lucky Number</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                  <span className="flex items-center gap-1">
+                    Lucky Number
+                    <HelpIcon text="A random number generated for each bet. You win if this number is less than or equal to your threshold. The generation is provably fair and verifiable on-chain." />
+                  </span>
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Result</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Payout</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">TX ID</th>
