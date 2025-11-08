@@ -12,11 +12,13 @@ export default function HelpIcon({ text, className = '' }: HelpIconProps) {
 
   return (
     <div className={`relative inline-block ${className}`}>
-      <button
-        type="button"
+      <span
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
-        onClick={() => setIsVisible(!isVisible)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsVisible(!isVisible);
+        }}
         className="inline-flex items-center justify-center w-4 h-4 text-xs text-slate-400 hover:text-slate-300 cursor-help transition-colors"
       >
         <svg
@@ -31,7 +33,7 @@ export default function HelpIcon({ text, className = '' }: HelpIconProps) {
             clipRule="evenodd"
           />
         </svg>
-      </button>
+      </span>
 
       {isVisible && (
         <div className="absolute z-50 w-64 p-3 mt-2 text-sm text-white bg-slate-800 border border-slate-600 rounded-lg shadow-xl left-0 top-full">
