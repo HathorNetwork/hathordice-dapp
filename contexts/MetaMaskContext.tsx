@@ -21,6 +21,26 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
   const [isConnected, setIsConnected] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
+  // Helper method to call MetaMask Snap and parse JSON response
+  const metamask_request = useCallback(async (method: string, params?: any): Promise<any> => {
+    if (!window.ethereum) {
+      throw new Error('MetaMask is not installed');
+    }
+
+    const resultStr = await window.ethereum.request({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId: SNAP_ID,
+        request: {
+          method,
+          params,
+        },
+      },
+    });
+
+    return typeof resultStr === 'string' ? JSON.parse(resultStr) : resultStr;
+  }, []);
+
   // Check if MetaMask is installed
   useEffect(() => {
     const checkMetaMask = () => {
@@ -47,19 +67,10 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
 
         if (snaps?.[SNAP_ID]) {
           // Get address from snap
-          const result = await window.ethereum.request({
-            method: 'wallet_invokeSnap',
-            params: {
-              snapId: SNAP_ID,
-              request: {
-                method: 'htr_getAddress',
-                params: { network: 'testnet' },
-              },
-            },
-          });
+          const result = await metamask_request('htr_getAddress', { network: 'testnet', type: 'index', index: 0 });
 
-          if (result?.address) {
-            setAddress(result.address);
+          if (result?.response?.address) {
+            setAddress(result.response.address);
             setIsConnected(true);
           }
         }
@@ -92,25 +103,16 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
       }
 
       // Get address from snap
-      const addressResult = await window.ethereum.request({
-        method: 'wallet_invokeSnap',
-        params: {
-          snapId: SNAP_ID,
-          request: {
-            method: 'htr_getAddress',
-            params: { network: 'testnet' },
-          },
-        },
-      });
+      const addressResult = await metamask_request('htr_getAddress', { network: 'testnet', type: 'index', index: 0 });
 
-      if (!addressResult?.address) {
+      if (!addressResult?.response?.address) {
         throw new Error('Failed to get address from snap');
       }
 
-      setAddress(addressResult.address);
+      setAddress(addressResult.response.address);
       setIsConnected(true);
       localStorage.setItem('wallet_type', 'metamask');
-      localStorage.setItem('metamask_address', addressResult.address);
+      localStorage.setItem('metamask_address', addressResult.response.address);
     } catch (error: any) {
       console.error('Failed to connect to MetaMask Snap:', error);
       throw new Error(error?.message || 'Failed to connect to MetaMask Snap');
@@ -126,33 +128,19 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
 
   const request = useCallback(
     async <T = any,>(method: string, params?: any): Promise<T> => {
-      if (!window.ethereum) {
-        throw new Error('MetaMask is not installed');
-      }
-
       if (!isConnected) {
         throw new Error('MetaMask Snap is not connected');
       }
 
       try {
-        const result = await window.ethereum.request({
-          method: 'wallet_invokeSnap',
-          params: {
-            snapId: SNAP_ID,
-            request: {
-              method,
-              params,
-            },
-          },
-        });
-
+        const result = await metamask_request(method, params);
         return result as T;
       } catch (error: any) {
         console.error('MetaMask Snap request failed:', error);
         throw new Error(error?.message || 'MetaMask Snap request failed');
       }
     },
-    [isConnected]
+    [isConnected, metamask_request]
   );
 
   const value = useMemo(
