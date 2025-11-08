@@ -32,17 +32,17 @@ export function ContractInfoCompact({ contractState, token }: ContractInfoCompac
       </div>
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
-          <p className="text-slate-400 flex items-center gap-1">
+          <div className="text-slate-400 flex items-center gap-1">
             House Edge
             <HelpIcon text="The percentage advantage the house has on each bet. Liquidity providers earn this edge over time. A 2% house edge means on average, players lose 2% of their bet." />
-          </p>
+          </div>
           <p className="font-semibold text-white">{formatNumber(houseEdgePercent, 2)}%</p>
         </div>
         <div>
-          <p className="text-slate-400 flex items-center gap-1">
+          <div className="text-slate-400 flex items-center gap-1">
             Max Bet
             <HelpIcon text="The maximum amount you can bet in a single transaction. This is set to ensure the pool has enough liquidity to pay out potential winnings." />
-          </p>
+          </div>
           <p className="font-semibold text-white">{formatTokenAmount(contractState.max_bet_amount)} {token}</p>
         </div>
         <div>
@@ -50,10 +50,10 @@ export function ContractInfoCompact({ contractState, token }: ContractInfoCompac
           <p className="font-semibold text-white">{formatTokenAmount(contractState.available_tokens)} {token}</p>
         </div>
         <div>
-          <p className="text-slate-400 flex items-center gap-1">
+          <div className="text-slate-400 flex items-center gap-1">
             Random Bits
             <HelpIcon text="The number of random bits used to generate the lucky number. 16 bits means numbers from 0 to 65,535. More bits = wider range of possible outcomes." />
-          </p>
+          </div>
           <p className="font-semibold text-white">{contractState.random_bit_length}</p>
         </div>
       </div>
