@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bet } from '@/types';
 import { formatNumber, formatAddress } from '@/lib/utils';
 import { useHathor } from '@/contexts/HathorContext';
@@ -13,7 +13,7 @@ export default function RecentBetsTable() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const loadBets = async () => {
+  const loadBets = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -26,13 +26,13 @@ export default function RecentBetsTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchRecentBets]);
 
   useEffect(() => {
     loadBets();
     const interval = setInterval(loadBets, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadBets]);
 
   const formatLastUpdated = () => {
     if (!lastUpdated) return '';

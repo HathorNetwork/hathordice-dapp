@@ -10,8 +10,12 @@ interface NetworkSelectorProps {
 }
 
 export function NetworkSelector({ value, onChange, disabled }: NetworkSelectorProps) {
+  const handleChange = (value: string) => {
+    onChange(value as Network);
+  };
+
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select value={value} onValueChange={handleChange} disabled={disabled}>
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="Select network" />
       </SelectTrigger>

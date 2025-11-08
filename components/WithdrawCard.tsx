@@ -70,10 +70,11 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
     }
 
     const tokenUid = contractState?.token_uid || '00';
+    const amountToWithdraw = Number(claimableBalance) / 100;
 
     setIsWithdrawing(true);
     try {
-      const result = await claimBalance(selectedToken, contractId, tokenUid);
+      const result = await claimBalance(amountToWithdraw, selectedToken, contractId, tokenUid);
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
       // Refresh claimable balance
       const claimable = await coreAPI.getClaimableBalance(contractId, address!);

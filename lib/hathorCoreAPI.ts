@@ -77,7 +77,7 @@ export class HathorCoreAPI {
     // Construct query parameters properly
     const params = new URLSearchParams();
     params.append('id', contractId);
-    params.append('calls[]', `${method}(${args.map(JSON.stringify).join(', ')})`);
+    params.append('calls[]', `${method}(${args.map(arg => JSON.stringify(arg)).join(', ')})`);
 
     const response = await fetch(`${this.baseUrl}/nano_contract/state?${params.toString()}`);
 

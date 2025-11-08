@@ -258,7 +258,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
               player: tx.nc_caller || 'Unknown',
               amount: tx.args?.[0] ? tx.args[0] / 100 : 0,
               threshold: tx.args?.[1] || 0,
-              result: tx.is_voided ? 'failed' : (!tx.first_block ? 'pending' : (tx.payout > 0 ? 'win' : 'lose')),
+              result: tx.is_voided ? 'failed' : (!tx.first_block ? 'pending' : ((tx.payout ?? 0) > 0 ? 'win' : 'lose')),
               payout: 0,
               token: 'HTR',
               timestamp: tx.timestamp * 1000,

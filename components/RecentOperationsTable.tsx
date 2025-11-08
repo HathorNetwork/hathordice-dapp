@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatAddress } from '@/lib/utils';
 
@@ -23,7 +23,7 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchOperations = async () => {
+  const fetchOperations = useCallback(async () => {
     if (!isConnected) {
       setOperations([]);
       return;
@@ -52,14 +52,14 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedToken, isConnected, getContractIdForToken, coreAPI]);
 
   useEffect(() => {
     fetchOperations();
     // Refresh every 10 seconds
     const interval = setInterval(fetchOperations, 10000);
     return () => clearInterval(interval);
-  }, [selectedToken, isConnected, getContractIdForToken, coreAPI]);
+  }, [fetchOperations]);
 
   const getOperationStatus = (op: Operation) => {
     if (op.is_voided) {

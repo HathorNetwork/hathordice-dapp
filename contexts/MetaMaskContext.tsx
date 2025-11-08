@@ -13,7 +13,7 @@ interface IMetaMaskContext {
 
 const MetaMaskContext = createContext<IMetaMaskContext>({} as IMetaMaskContext);
 
-const SNAP_ID = 'npm:@hathor/wallet-snap';
+const SNAP_ID = 'npm:@hathor/snap';
 const SNAP_VERSION = '*'; // Use latest version
 
 export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode[] }) {

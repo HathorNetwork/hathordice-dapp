@@ -41,7 +41,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
   useEffect(() => {
     const newThreshold = winChanceToThreshold(winChance, randomBitLength);
     setThreshold(newThreshold);
-  }, [randomBitLength]);
+  }, [randomBitLength, winChance]);
 
   const handleWinChanceChange = (value: number) => {
     setWinChance(value);

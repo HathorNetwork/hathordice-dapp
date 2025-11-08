@@ -65,7 +65,7 @@ export class HathorRPCService {
     return this.request('htr_getConnectedNetwork');
   }
 
-  async getBalance(params: GetBalanceParams): Promise<any[]> {
+  async getBalance(params: GetBalanceParams): Promise<{ response: any[] }> {
     return this.request('htr_getBalance', params);
   }
 
@@ -85,13 +85,15 @@ export class HathorRPCService {
         return { network: 'testnet', genesisHash: '0x123...' } as T;
 
       case 'htr_getBalance':
-        return [{
-          token: { id: '00', name: 'Hathor', symbol: 'HTR' },
-          balance: { unlocked: 1250.50, locked: 0 },
-          tokenAuthorities: { unlocked: { mint: false, melt: false }, locked: { mint: false, melt: false } },
-          transactions: 42,
-          lockExpires: null,
-        }] as T;
+        return {
+          response: [{
+            token: { id: '00', name: 'Hathor', symbol: 'HTR' },
+            balance: { unlocked: 1250.50, locked: 0 },
+            tokenAuthorities: { unlocked: { mint: false, melt: false }, locked: { mint: false, melt: false } },
+            transactions: 42,
+            lockExpires: null,
+          }]
+        } as T;
 
       case 'htr_getAddress':
         return { address: 'WYBwT3xLpDnHNtYZiU52oanupVeDKhAvNp', index: 0, addressPath: "m/44'/280'/0'/0/0" } as T;
