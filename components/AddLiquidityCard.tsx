@@ -16,7 +16,8 @@ interface AddLiquidityCardProps {
 export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }: AddLiquidityCardProps) {
   const { walletBalance, contractBalance, addLiquidity } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken } = useHathor();
-  const totalBalance = walletBalance + contractBalance;
+  const contractBalanceInTokens = Number(contractBalance) / 100;
+  const totalBalance = walletBalance + contractBalanceInTokens;
   const [amount, setAmount] = useState(500);
   const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
 

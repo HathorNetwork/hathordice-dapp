@@ -17,7 +17,7 @@ export interface WalletState {
   connected: boolean;
   address: string | null;
   walletBalance: number;
-  contractBalance: number;
+  contractBalance: bigint;
 }
 
 export interface GameState {

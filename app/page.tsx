@@ -18,11 +18,10 @@ import { formatBalance } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 
 export default function Home() {
-  const { connected, balance, address, claimBalance, refreshBalance } = useWallet();
+  const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance } = useWallet();
   const { network, getContractStateForToken, getContractIdForToken, switchNetwork, isConnected, coreAPI } = useHathor();
   const [selectedToken, setSelectedToken] = useState('HTR');
   const [expandedCard, setExpandedCard] = useState<string | null>('placeBet');
-  const [claimableBalance, setClaimableBalance] = useState<bigint>(0n);
   const [isLoadingClaimable, setIsLoadingClaimable] = useState(false);
   const [claimableError, setClaimableError] = useState<string | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -39,7 +38,7 @@ export default function Home() {
   useEffect(() => {
     const fetchClaimableBalance = async () => {
       if (!isConnected || !address) {
-        setClaimableBalance(0n);
+        setContractBalance(0n);
         setClaimableError(null);
         return;
       }
@@ -53,11 +52,11 @@ export default function Home() {
       setClaimableError(null);
       try {
         const claimable = await coreAPI.getClaimableBalance(contractId, address);
-        setClaimableBalance(claimable);
+        setContractBalance(claimable);
         setClaimableError(null);
       } catch (error: any) {
         console.error('Failed to fetch claimable balance:', error);
-        setClaimableBalance(0n);
+        setContractBalance(0n);
         setClaimableError('Load failed');
       } finally {
         setIsLoadingClaimable(false);
@@ -65,7 +64,7 @@ export default function Home() {
     };
 
     fetchClaimableBalance();
-  }, [isConnected, address, selectedToken, getContractIdForToken, coreAPI]);
+  }, [isConnected, address, selectedToken, getContractIdForToken, coreAPI, setContractBalance]);
 
   const handleWithdrawClick = () => {
     setShowWithdrawModal(true);
@@ -84,7 +83,7 @@ export default function Home() {
       return;
     }
 
-    const availableBalance = Number(claimableBalance) / 100;
+    const availableBalance = Number(contractBalance) / 100;
     if (amount > availableBalance) {
       toast.error('Amount exceeds available balance');
       return;
@@ -116,7 +115,7 @@ export default function Home() {
   };
 
   const handleSetMaxWithdraw = () => {
-    const maxAmount = Number(claimableBalance) / 100;
+    const maxAmount = Number(contractBalance) / 100;
     setWithdrawAmount(maxAmount.toString());
   };
 
@@ -145,7 +144,7 @@ export default function Home() {
     setIsRefreshingContract(true);
     try {
       const claimable = await coreAPI.getClaimableBalance(contractId, address);
-      setClaimableBalance(claimable);
+      setContractBalance(claimable);
       setClaimableError(null);
       toast.success('Contract balance refreshed');
     } catch (error: any) {
@@ -232,7 +231,7 @@ export default function Home() {
                       ) : (
                         <>
                           <span className="text-green-400 font-bold">
-                            {formatBalance(claimableBalance)} {selectedToken}
+                            {formatBalance(contractBalance)} {selectedToken}
                           </span>
                           <button
                             onClick={handleRefreshContractBalance}
@@ -242,7 +241,7 @@ export default function Home() {
                           >
                             🔄
                           </button>
-                          {claimableBalance > 0n && (
+                          {contractBalance > 0n && (
                             <button
                               onClick={handleWithdrawClick}
                               disabled={isClaiming}
@@ -294,7 +293,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <span className="text-slate-300 text-sm font-medium">Available Balance:</span>
                 <span className="text-green-400 font-bold">
-                  {formatBalance(claimableBalance)} {selectedToken}
+                  {formatBalance(contractBalance)} {selectedToken}
                 </span>
               </div>
             </div>

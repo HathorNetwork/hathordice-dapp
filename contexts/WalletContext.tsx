@@ -11,11 +11,12 @@ interface WalletContextType {
   address: string | null;
   balance: bigint;
   walletBalance: number;
-  contractBalance: number;
+  contractBalance: bigint;
+  setContractBalance: (balance: bigint) => void;
   connectWallet: () => void;
   disconnectWallet: () => void;
   setBalance: (balance: bigint) => void;
-  placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
+  placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, contractBalance: bigint) => Promise<any>;
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   claimBalance: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
@@ -38,7 +39,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<bigint>(0n);
-  const [contractBalance, setContractBalance] = useState(0);
+  const [contractBalance, setContractBalance] = useState<bigint>(0n);
   const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet));
 
   // Load cached balance from localStorage
@@ -135,22 +136,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setConnected(true);
     setAddress('0x7a3f...9b2c');
     setBalance(100000n);
-    setContractBalance(342.75);
+    setContractBalance(34275n);
   };
 
   const disconnectWallet = () => {
     setConnected(false);
     setAddress(null);
     setBalance(0n);
-    setContractBalance(0);
+    setContractBalance(0n);
   };
 
-  const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string) => {
+  const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, currentContractBalance: bigint) => {
     if (!adapter?.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
 
     const amountInCents = Math.floor(betAmount * 100);
+    const contractBalanceInCents = Number(currentContractBalance);
+
+    // Calculate how much we need to deposit: bet amount - contract balance
+    // If contract balance covers the bet, depositAmount will be 0 or negative (no deposit needed)
+    const depositAmount = Math.max(0, amountInCents - contractBalanceInCents);
 
     console.log('Placing bet:', {
       betAmount,
@@ -159,20 +165,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       contractId,
       address,
       amountInCents,
+      contractBalanceInCents,
+      depositAmount,
     });
+
+    // Build actions array - only include deposit if needed
+    const actions = [];
+    if (depositAmount > 0) {
+      actions.push({
+        type: 'deposit' as const,
+        amount: depositAmount.toString(),
+        token: tokenUid,
+      });
+    }
 
     const params = {
       network: 'testnet',
       nc_id: contractId,
       method: 'place_bet',
       args: [amountInCents, threshold],
-      actions: [
-        {
-          type: 'deposit' as const,
-          amount: amountInCents.toString(),
-          token: tokenUid,
-        },
-      ],
+      actions,
       push_tx: true,
     };
 
@@ -329,6 +341,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       balance,
       walletBalance,
       contractBalance,
+      setContractBalance,
       connectWallet,
       disconnectWallet,
       setBalance,
