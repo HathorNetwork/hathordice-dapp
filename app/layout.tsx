@@ -3,6 +3,7 @@ import { WalletProvider } from '@/contexts/WalletContext';
 import { HathorProvider } from '@/contexts/HathorContext';
 import { WalletConnectProvider } from '@/contexts/WalletConnectContext';
 import { MetaMaskProvider } from '@/contexts/MetaMaskContext';
+import { UnifiedWalletProvider } from '@/contexts/UnifiedWalletContext';
 import { ToastProvider, Toaster } from '@/lib/toast';
 import './globals.css';
 
@@ -22,12 +23,14 @@ export default function RootLayout({
         <ToastProvider>
           <WalletConnectProvider>
             <MetaMaskProvider>
-              <WalletProvider>
-                <HathorProvider>
-                  {children}
-                  <Toaster />
-                </HathorProvider>
-              </WalletProvider>
+              <UnifiedWalletProvider>
+                <WalletProvider>
+                  <HathorProvider>
+                    {children}
+                    <Toaster />
+                  </HathorProvider>
+                </WalletProvider>
+              </UnifiedWalletProvider>
             </MetaMaskProvider>
           </WalletConnectProvider>
         </ToastProvider>

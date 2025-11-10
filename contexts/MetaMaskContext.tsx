@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { HathorRPCService } from '@/lib/hathorRPC';
+import { config } from '@/lib/config';
 
 interface IMetaMaskContext {
   address: string | null;
@@ -41,6 +43,9 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
     return typeof resultStr === 'string' ? JSON.parse(resultStr) : resultStr;
   }, []);
 
+  // Create RPC service instance configured for MetaMask
+  const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet, undefined, undefined, metamask_request));
+
   // Check if MetaMask is installed
   useEffect(() => {
     const checkMetaMask = () => {
@@ -66,11 +71,17 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
         });
 
         if (snaps?.[SNAP_ID]) {
-          // Get address from snap
-          const result = await metamask_request('htr_getAddress', { network: 'testnet', type: 'index', index: 0 });
+          // Get address from snap using RPC service
+          const result = await rpcService.getAddress({
+            network: 'testnet',
+            type: 'index',
+            index: 0
+          });
 
-          if (result?.response?.address) {
-            setAddress(result.response.address);
+          // MetaMask Snap returns response in nested format
+          const addressData = (result as any)?.response || result;
+          if (addressData?.address) {
+            setAddress(addressData.address);
             setIsConnected(true);
           }
         }
@@ -80,7 +91,7 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
     };
 
     checkPersistedConnection();
-  }, []);
+  }, [rpcService]);
 
   const connect = useCallback(async () => {
     if (!window.ethereum) {
@@ -102,28 +113,34 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
         throw new Error('Failed to connect to Hathor Snap');
       }
 
-      // Get address from snap
-      const addressResult = await metamask_request('htr_getAddress', { network: 'testnet', type: 'index', index: 0 });
+      // Get address from snap using RPC service
+      const addressResult = await rpcService.getAddress({
+        network: 'testnet',
+        type: 'index',
+        index: 0
+      });
 
-      if (!addressResult?.response?.address) {
+      // MetaMask Snap returns response in nested format
+      const addressData = (addressResult as any)?.response || addressResult;
+      if (!addressData?.address) {
         throw new Error('Failed to get address from snap');
       }
 
-      setAddress(addressResult.response.address);
+      setAddress(addressData.address);
       setIsConnected(true);
       localStorage.setItem('wallet_type', 'metamask');
-      localStorage.setItem('metamask_address', addressResult.response.address);
+      localStorage.setItem('address', addressData.address);
     } catch (error: any) {
       console.error('Failed to connect to MetaMask Snap:', error);
       throw new Error(error?.message || 'Failed to connect to MetaMask Snap');
     }
-  }, []);
+  }, [rpcService]);
 
   const disconnect = useCallback(async () => {
     setAddress(null);
     setIsConnected(false);
     localStorage.removeItem('wallet_type');
-    localStorage.removeItem('metamask_address');
+    localStorage.removeItem('address');
   }, []);
 
   const request = useCallback(

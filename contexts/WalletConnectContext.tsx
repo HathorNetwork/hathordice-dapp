@@ -44,6 +44,8 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
     setSession(undefined);
     setAccounts([]);
     setChains([]);
+    localStorage.removeItem('wallet_type');
+    localStorage.removeItem('address');
   };
 
   const onSessionConnected = useCallback(async (_session: SessionTypes.Struct) => {
@@ -55,6 +57,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
     setSession(_session);
     setChains(allNamespaceChains);
     setAccounts(allNamespaceAccounts);
+
+    // Store wallet type and address in localStorage
+    localStorage.setItem('wallet_type', 'walletconnect');
+    if (_session.namespaces.hathor?.accounts?.[0]) {
+      const [, , address] = _session.namespaces.hathor.accounts[0].split(':');
+      localStorage.setItem('address', address);
+    }
   }, []);
 
   const getFirstAddress = useCallback(() => {

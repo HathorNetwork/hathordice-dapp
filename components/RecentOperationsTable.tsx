@@ -18,17 +18,12 @@ interface RecentOperationsTableProps {
 }
 
 export default function RecentOperationsTable({ selectedToken }: RecentOperationsTableProps) {
-  const { getContractIdForToken, coreAPI, isConnected } = useHathor();
+  const { getContractIdForToken, coreAPI } = useHathor();
   const [operations, setOperations] = useState<Operation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchOperations = useCallback(async () => {
-    if (!isConnected) {
-      setOperations([]);
-      return;
-    }
-
     const contractId = getContractIdForToken(selectedToken);
     if (!contractId) {
       return;
@@ -52,7 +47,7 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
     } finally {
       setIsLoading(false);
     }
-  }, [selectedToken, isConnected, getContractIdForToken, coreAPI]);
+  }, [selectedToken, getContractIdForToken, coreAPI]);
 
   useEffect(() => {
     fetchOperations();
@@ -89,10 +84,6 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
     const time = lastUpdated.toLocaleTimeString();
     return `${date} ${time}`;
   };
-
-  if (!isConnected) {
-    return null;
-  }
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
