@@ -1,13 +1,11 @@
-import { Network } from './config';
+import { Network, config } from './config';
 import { ContractState, BlueprintInfo, ContractHistory } from '@/types/hathor';
 
 export class HathorCoreAPI {
   private baseUrl: string;
 
   constructor(network: Network) {
-    this.baseUrl = network === 'mainnet' 
-      ? 'https://node1.mainnet.hathor.network/v1a'
-      : 'https://node1.india.testnet.hathor.network/v1a';
+    this.baseUrl = config.hathorNodeUrls[network];
   }
 
   async getBlueprintInfo(blueprintId: string): Promise<BlueprintInfo> {
@@ -37,7 +35,7 @@ export class HathorCoreAPI {
   }
 
   async getContractHistory(contractId: string, limit: number = 50): Promise<ContractHistory> {
-    const response = await fetch(`${this.baseUrl}/nano_contract/history?id=${contractId}&count=${limit}`);
+    const response = await fetch(`${this.baseUrl}/nano_contract/history?id=${contractId}&count=${limit}&include_nc_events=true`);
     if (!response.ok) {
       throw new Error(`Failed to fetch contract history: ${response.statusText}`);
     }
@@ -50,6 +48,8 @@ export class HathorCoreAPI {
         nc_caller: tx.nc_address,
         first_block: tx.first_block,
         is_voided: tx.is_voided,
+        nc_args_decoded: tx.nc_args_decoded,
+        nc_events: tx.nc_events,
       })) || [],
       total: data.history?.length || 0,
     };

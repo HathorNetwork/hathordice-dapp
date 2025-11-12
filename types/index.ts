@@ -11,6 +11,7 @@ export interface Bet {
   timestamp: number;
   isYourBet?: boolean;
   contractId?: string;
+  error?: string;
 }
 
 export interface WalletState {

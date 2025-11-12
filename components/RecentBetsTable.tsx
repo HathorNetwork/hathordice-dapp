@@ -164,23 +164,41 @@ export default function RecentBetsTable() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-300">
-                    {formatNumber(bet.amount)} {bet.token}
+                    {bet.error ? (
+                      <span className="text-red-400 italic">{bet.error}</span>
+                    ) : (
+                      `${formatNumber(bet.amount)} ${bet.token}`
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-300">
-                    {bet.threshold.toLocaleString()}
+                    {bet.error ? (
+                      <span className="text-red-400 italic">{bet.error}</span>
+                    ) : (
+                      bet.threshold.toLocaleString()
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {bet.luckyNumber !== undefined ? (
+                    {bet.error ? (
+                      <span className="text-red-400 italic">{bet.error}</span>
+                    ) : bet.luckyNumber !== undefined ? (
                       <span className="text-slate-300">{bet.luckyNumber.toLocaleString()}</span>
                     ) : (
                       <span className="text-slate-500 italic">Unknown</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {getResultDisplay(bet)}
+                    {bet.error ? (
+                      <span className="text-red-400 italic">{bet.error}</span>
+                    ) : (
+                      getResultDisplay(bet)
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium">
-                    {getPayoutDisplay(bet)}
+                    {bet.error ? (
+                      <span className="text-red-400 italic">{bet.error}</span>
+                    ) : (
+                      getPayoutDisplay(bet)
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-blue-400 font-mono">
                     <a

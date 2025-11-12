@@ -253,16 +253,57 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
         for (const tx of history.transactions) {
           if (tx.nc_method === 'place_bet') {
+            // Check if the bet is from the connected wallet
+            const isYourBet = address && tx.nc_caller.toLowerCase() === address.toLowerCase();
+
+            // If nc_args_decoded doesn't exist or is invalid, treat as pending
+            let amount = 0;
+            let threshold = 0;
+            let hasPendingArgs = false;
+
+            if (!tx.nc_args_decoded || tx.nc_args_decoded.length !== 2) {
+              // Transaction is likely pending and doesn't have decoded args yet
+              hasPendingArgs = true;
+            } else {
+              amount = tx.nc_args_decoded[0] / 100; // First argument is bet amount in cents
+              threshold = tx.nc_args_decoded[1]; // Second argument is threshold
+            }
+
+            // Parse nc_events to extract lucky_number and payout
+            let luckyNumber: number | undefined;
+            let payout = 0;
+            let potentialPayout: number | undefined;
+
+            if (tx.nc_events && tx.nc_events.length === 1) {
+              try {
+                // Convert hex string to bytes, then to UTF-8 string, then parse JSON
+                const hexString = tx.nc_events[0].data;
+                const bytes = new Uint8Array(hexString.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+                const eventStr = new TextDecoder().decode(bytes);
+                const eventData = JSON.parse(eventStr);
+
+                luckyNumber = eventData.lucky_number;
+                payout = eventData.payout ? eventData.payout / 100 : 0;
+              } catch (error) {
+                console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
+              }
+            } else if (tx.nc_events && tx.nc_events.length !== 1) {
+              console.warn(`Expected exactly 1 nc_event for transaction ${tx.tx_id}, got ${tx.nc_events.length}`);
+            }
+
             const bet: Bet = {
               id: tx.tx_id,
               player: tx.nc_caller || 'Unknown',
-              amount: tx.args?.[0] ? tx.args[0] / 100 : 0,
-              threshold: tx.args?.[1] || 0,
-              result: tx.is_voided ? 'failed' : (!tx.first_block ? 'pending' : ((tx.payout ?? 0) > 0 ? 'win' : 'lose')),
-              payout: 0,
+              amount,
+              threshold,
+              luckyNumber,
+              result: tx.is_voided ? 'failed' : (hasPendingArgs || !tx.first_block ? 'pending' : (payout > 0 ? 'win' : 'lose')),
+              payout,
+              potentialPayout,
               token: 'HTR',
               timestamp: tx.timestamp * 1000,
               contractId,
+              isYourBet,
             };
             allBets.push(bet);
           }

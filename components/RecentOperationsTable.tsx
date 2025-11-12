@@ -18,7 +18,7 @@ interface RecentOperationsTableProps {
 }
 
 export default function RecentOperationsTable({ selectedToken }: RecentOperationsTableProps) {
-  const { getContractIdForToken, coreAPI } = useHathor();
+  const { getContractIdForToken, coreAPI, address } = useHathor();
   const [operations, setOperations] = useState<Operation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -138,8 +138,12 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
                     <td className="py-3 text-slate-300 text-sm">
                       {formatTimestamp(op.timestamp)}
                     </td>
-                    <td className="py-3 text-slate-300 text-sm font-mono">
-                      {formatAddress(op.nc_caller)}
+                    <td className="py-3 text-sm">
+                      {address && op.nc_caller.toLowerCase() === address.toLowerCase() ? (
+                        <span className="text-blue-400 font-medium">YOU</span>
+                      ) : (
+                        <span className="text-slate-300 font-mono">{formatAddress(op.nc_caller)}</span>
+                      )}
                     </td>
                     <td className="py-3 text-blue-400 text-sm font-mono">
                       <a
