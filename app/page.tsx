@@ -16,6 +16,7 @@ import { NetworkSelector } from '@/components/NetworkSelector';
 import HelpIcon from '@/components/HelpIcon';
 import { formatBalance } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import { APP_VERSION } from '@/lib/version';
 
 export default function Home() {
   const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance } = useWallet();
@@ -343,6 +344,11 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Version Footer */}
+      <footer className="mt-8 text-center text-slate-500 text-sm">
+        <p>HathorDice {APP_VERSION}</p>
+      </footer>
     </div>
   );
 }
