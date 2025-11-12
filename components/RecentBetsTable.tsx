@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bet } from '@/types';
 import { formatNumber, formatAddress } from '@/lib/utils';
 import { useHathor } from '@/contexts/HathorContext';
 import HelpIcon from '@/components/HelpIcon';
+import BetResultNotification from '@/components/BetResultNotification';
 
 export default function RecentBetsTable() {
   const { fetchRecentBets } = useHathor();
@@ -12,12 +13,32 @@ export default function RecentBetsTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [notificationBet, setNotificationBet] = useState<Bet | null>(null);
+  const previousBetsRef = useRef<Map<string, Bet>>(new Map());
 
   const loadBets = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const recentBets = await fetchRecentBets();
+
+      // Check for state changes in user's bets (automatic transitions)
+      recentBets.forEach((bet) => {
+        if (bet.isYourBet) {
+          const previousBet = previousBetsRef.current.get(bet.id);
+
+          // Detect transition from pending to win/lose
+          if (previousBet && previousBet.result === 'pending' &&
+              (bet.result === 'win' || bet.result === 'lose')) {
+            // Show notification for this bet
+            setNotificationBet(bet);
+          }
+
+          // Update the reference
+          previousBetsRef.current.set(bet.id, bet);
+        }
+      });
+
       setBets(recentBets);
       setLastUpdated(new Date());
     } catch (err: any) {
@@ -27,6 +48,13 @@ export default function RecentBetsTable() {
       setLoading(false);
     }
   }, [fetchRecentBets]);
+
+  const handleResultClick = (bet: Bet) => {
+    // Only show animation for win/lose results
+    if (bet.result === 'win' || bet.result === 'lose') {
+      setNotificationBet(bet);
+    }
+  };
 
   useEffect(() => {
     loadBets();
@@ -166,6 +194,8 @@ export default function RecentBetsTable() {
                   <td className="px-4 py-3 text-sm text-slate-300">
                     {bet.error ? (
                       <span className="text-red-400 italic">{bet.error}</span>
+                    ) : bet.result === 'pending' ? (
+                      <span className="text-slate-600">-</span>
                     ) : (
                       `${formatNumber(bet.amount)} ${bet.token}`
                     )}
@@ -173,6 +203,8 @@ export default function RecentBetsTable() {
                   <td className="px-4 py-3 text-sm text-slate-300">
                     {bet.error ? (
                       <span className="text-red-400 italic">{bet.error}</span>
+                    ) : bet.result === 'pending' ? (
+                      <span className="text-slate-600">-</span>
                     ) : (
                       bet.threshold.toLocaleString()
                     )}
@@ -180,13 +212,22 @@ export default function RecentBetsTable() {
                   <td className="px-4 py-3 text-sm">
                     {bet.error ? (
                       <span className="text-red-400 italic">{bet.error}</span>
+                    ) : bet.result === 'pending' ? (
+                      <span className="text-slate-600">-</span>
                     ) : bet.luckyNumber !== undefined ? (
                       <span className="text-slate-300">{bet.luckyNumber.toLocaleString()}</span>
                     ) : (
                       <span className="text-slate-500 italic">Unknown</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td
+                    className={`px-4 py-3 text-sm ${
+                      (bet.result === 'win' || bet.result === 'lose') && !bet.error
+                        ? 'cursor-pointer hover:bg-slate-600/50 transition-colors'
+                        : ''
+                    }`}
+                    onClick={() => !bet.error && handleResultClick(bet)}
+                  >
                     {bet.error ? (
                       <span className="text-red-400 italic">{bet.error}</span>
                     ) : (
@@ -196,6 +237,8 @@ export default function RecentBetsTable() {
                   <td className="px-4 py-3 text-sm font-medium">
                     {bet.error ? (
                       <span className="text-red-400 italic">{bet.error}</span>
+                    ) : bet.result === 'pending' ? (
+                      <span className="text-slate-600">-</span>
                     ) : (
                       getPayoutDisplay(bet)
                     )}
@@ -216,6 +259,14 @@ export default function RecentBetsTable() {
           </table>
         )}
       </div>
+
+      {/* Notification for bet result changes */}
+      {notificationBet && (
+        <BetResultNotification
+          bet={notificationBet}
+          onComplete={() => setNotificationBet(null)}
+        />
+      )}
     </div>
   );
 }
