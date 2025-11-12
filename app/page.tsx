@@ -105,7 +105,7 @@ export default function Home() {
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
       // Refresh claimable balance
       const claimable = await coreAPI.getClaimableBalance(contractId, address!);
-      setClaimableBalance(claimable);
+      setContractBalance(claimable);
       setShowWithdrawModal(false);
       setWithdrawAmount('');
     } catch (error: any) {
