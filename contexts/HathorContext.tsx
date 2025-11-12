@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { HathorCoreAPI } from '@/lib/hathorCoreAPI';
-import { ContractState } from '@/types/hathor';
+import { ContractState, ContractTransaction } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
 import { Bet } from '@/types';
 import { useWalletConnect } from './WalletConnectContext';
@@ -22,6 +22,13 @@ interface HathorContextType {
   switchNetwork: (network: Network) => Promise<void>;
   refreshContractStates: () => Promise<void>;
   fetchRecentBets: () => Promise<Bet[]>;
+  fetchAllUserBets: (mostRecentTxId?: string) => Promise<Bet[]>;
+  // Centralized history data
+  allBets: Bet[];
+  allTransactions: ContractTransaction[];
+  isLoadingHistory: boolean;
+  lastHistoryUpdate: Date | null;
+  refreshHistory: () => Promise<void>;
 }
 
 const HathorContext = createContext<HathorContextType | undefined>(undefined);
@@ -59,6 +66,12 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const [contractStates, setContractStates] = useState<Record<string, ContractState>>({});
   const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
   const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(network));
+
+  // Centralized history state
+  const [allBets, setAllBets] = useState<Bet[]>([]);
+  const [allTransactions, setAllTransactions] = useState<ContractTransaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [lastHistoryUpdate, setLastHistoryUpdate] = useState<Date | null>(null);
 
   const isConnected = walletConnect.isConnected || metaMask.isConnected;
 
@@ -323,6 +336,199 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchAllUserBets = async (mostRecentTxId?: string): Promise<Bet[]> => {
+    if (config.useMockWallet) {
+      return [];
+    }
+
+    if (!address) {
+      return [];
+    }
+
+    try {
+      const allBets: Bet[] = [];
+
+      for (const contractId of config.contractIds) {
+        let hasMore = true;
+        let after: string | undefined = undefined;
+        const seenTxIds = new Set<string>();
+
+        while (hasMore) {
+          const history = await coreAPI.getContractHistory(contractId, 100, after);
+
+          for (const tx of history.transactions) {
+            // Stop if we've reached the most recent transaction from previous fetch
+            if (mostRecentTxId && tx.tx_id === mostRecentTxId) {
+              hasMore = false;
+              break;
+            }
+
+            // Skip if we've already seen this transaction
+            if (seenTxIds.has(tx.tx_id)) {
+              continue;
+            }
+            seenTxIds.add(tx.tx_id);
+
+            // Only process place_bet transactions from the connected user
+            if (tx.nc_method === 'place_bet' && tx.nc_caller.toLowerCase() === address.toLowerCase()) {
+              // Skip pending or voided bets - only count completed bets
+              if (!tx.first_block || tx.is_voided) {
+                continue;
+              }
+
+              // Parse bet data
+              if (!tx.nc_args_decoded || tx.nc_args_decoded.length !== 2) {
+                continue;
+              }
+
+              const amount = tx.nc_args_decoded[0] / 100;
+              let payout = 0;
+
+              // Parse nc_events for payout
+              if (tx.nc_events && tx.nc_events.length === 1) {
+                try {
+                  const hexString = tx.nc_events[0].data;
+                  const bytes = new Uint8Array(hexString.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+                  const eventStr = new TextDecoder().decode(bytes);
+                  const eventData = JSON.parse(eventStr);
+                  payout = eventData.payout ? eventData.payout / 100 : 0;
+                } catch (error) {
+                  console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
+                }
+              }
+
+              const bet: Bet = {
+                id: tx.tx_id,
+                player: tx.nc_caller,
+                amount,
+                threshold: tx.nc_args_decoded[1],
+                result: payout > 0 ? 'win' : 'lose',
+                payout,
+                token: 'HTR',
+                timestamp: tx.timestamp * 1000,
+                contractId,
+                isYourBet: true,
+              };
+
+              allBets.push(bet);
+            }
+          }
+
+          // Check if there are more pages
+          if (history.hasMore && hasMore && history.transactions.length > 0) {
+            after = history.transactions[history.transactions.length - 1].tx_id;
+          } else {
+            hasMore = false;
+          }
+        }
+      }
+
+      // Sort by timestamp descending
+      allBets.sort((a, b) => b.timestamp - a.timestamp);
+      return allBets;
+    } catch (error) {
+      console.error('Failed to fetch all user bets:', error);
+      throw error;
+    }
+  };
+
+  // Centralized refresh function that updates all history data
+  const refreshHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const allTxs: ContractTransaction[] = [];
+      const bets: Bet[] = [];
+
+      for (const contractId of config.contractIds) {
+        const history = await coreAPI.getContractHistory(contractId, 100);
+
+        // Store all transactions with contractId
+        const txsWithContractId = history.transactions.map(tx => ({...tx, contractId}));
+        allTxs.push(...txsWithContractId);
+
+        // Process bets
+        for (const tx of history.transactions) {
+          if (tx.nc_method === 'place_bet') {
+            const isYourBet = !!(address && tx.nc_caller.toLowerCase() === address.toLowerCase());
+
+            // Parse bet data
+            if (!tx.nc_args_decoded || tx.nc_args_decoded.length !== 2) {
+              // Skip invalid bets
+              continue;
+            }
+
+            const amount = tx.nc_args_decoded[0] / 100;
+            let payout = 0;
+            let luckyNumber: number | undefined;
+
+            // Parse nc_events for payout and lucky number
+            if (tx.nc_events && tx.nc_events.length === 1) {
+              try {
+                const hexString = tx.nc_events[0].data;
+                const bytes = new Uint8Array(hexString.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+                const eventStr = new TextDecoder().decode(bytes);
+                const eventData = JSON.parse(eventStr);
+                luckyNumber = eventData.lucky_number;
+                payout = eventData.payout ? eventData.payout / 100 : 0;
+              } catch (error) {
+                console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
+              }
+            }
+
+            // Determine result
+            let result: 'win' | 'lose' | 'pending' | 'failed';
+            if (tx.is_voided) {
+              result = 'failed';
+            } else if (!tx.first_block) {
+              result = 'pending';
+            } else {
+              result = payout > 0 ? 'win' : 'lose';
+            }
+
+            const bet: Bet = {
+              id: tx.tx_id,
+              player: tx.nc_caller || 'Unknown',
+              amount,
+              threshold: tx.nc_args_decoded[1],
+              luckyNumber,
+              result,
+              payout,
+              token: 'HTR',
+              timestamp: tx.timestamp * 1000,
+              contractId,
+              isYourBet,
+            };
+
+            bets.push(bet);
+          }
+        }
+      }
+
+      // Sort bets: pending first, then by timestamp
+      bets.sort((a, b) => {
+        if (a.result === 'pending' && b.result !== 'pending') return -1;
+        if (a.result !== 'pending' && b.result === 'pending') return 1;
+        return b.timestamp - a.timestamp;
+      });
+
+      setAllBets(bets);
+      setAllTransactions(allTxs);
+      setLastHistoryUpdate(new Date());
+    } catch (error) {
+      console.error('Failed to refresh history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Auto-refresh history on mount and when address/network changes
+  useEffect(() => {
+    refreshHistory();
+    const interval = setInterval(refreshHistory, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, network]);
+
   return (
     <HathorContext.Provider
       value={{
@@ -338,6 +544,12 @@ export function HathorProvider({ children }: { children: ReactNode }) {
         switchNetwork,
         refreshContractStates,
         fetchRecentBets,
+        fetchAllUserBets,
+        allBets,
+        allTransactions,
+        isLoadingHistory,
+        lastHistoryUpdate,
+        refreshHistory,
       }}
     >
       {children}

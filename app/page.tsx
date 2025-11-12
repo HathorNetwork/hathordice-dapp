@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import BalanceCard from '@/components/BalanceCard';
 import RecentBetsTable from '@/components/RecentBetsTable';
 import RecentOperationsTable from '@/components/RecentOperationsTable';
+import ProfitLossCard from '@/components/ProfitLossCard';
 import TokenSelector from '@/components/TokenSelector';
 import PlaceBetCard from '@/components/PlaceBetCard';
 import AddLiquidityCard from '@/components/AddLiquidityCard';
@@ -172,18 +173,18 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {connected && <BalanceCard selectedToken={selectedToken} />}
+            <ProfitLossCard />
             <RecentBetsTable />
             <RecentOperationsTable selectedToken={selectedToken} />
           </div>
 
           <div className="space-y-6">
+            {/* Place Bet - Right Panel */}
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">🎮 GAME ACTIONS</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">🎲 PLACE BET</h2>
                 <TokenSelector selectedToken={selectedToken} onTokenChange={setSelectedToken} />
               </div>
-
-              <ContractInfoCompact contractState={contractState} token={selectedToken} />
 
               {isConnected && (
                 <div className="mb-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600 space-y-3">
@@ -258,12 +259,21 @@ export default function Home() {
                 </div>
               )}
 
+              <PlaceBetCard
+                selectedToken={selectedToken}
+                isExpanded={true}
+                onToggle={() => {}}
+              />
+            </div>
+
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">📊 INFO & LIQUIDITY</h2>
+              </div>
+
+              <ContractInfoCompact contractState={contractState} token={selectedToken} />
+
               <div className="space-y-4">
-                <PlaceBetCard
-                  selectedToken={selectedToken}
-                  isExpanded={expandedCard === 'placeBet'}
-                  onToggle={() => handleCardToggle('placeBet')}
-                />
                 <AddLiquidityCard
                   selectedToken={selectedToken}
                   isExpanded={expandedCard === 'addLiquidity'}

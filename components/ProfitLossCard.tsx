@@ -1,0 +1,151 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useHathor } from '@/contexts/HathorContext';
+
+export default function ProfitLossCard() {
+  const { allBets, address, isLoadingHistory } = useHathor();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Calculate stats from centralized data
+  const stats = useMemo(() => {
+    if (!address) {
+      return {
+        totalBets: 0,
+        totalWagered: 0,
+        totalPayout: 0,
+        profitLoss: 0,
+        winCount: 0,
+        loseCount: 0,
+      };
+    }
+
+    // Filter for user's completed bets only
+    const userBets = allBets.filter(
+      bet => bet.isYourBet && bet.result !== 'pending' && bet.result !== 'failed'
+    );
+
+    const wagered = userBets.reduce((sum, bet) => sum + bet.amount, 0);
+    const payout = userBets.reduce((sum, bet) => sum + bet.payout, 0);
+    const wins = userBets.filter(bet => bet.result === 'win').length;
+    const losses = userBets.filter(bet => bet.result === 'lose').length;
+
+    return {
+      totalBets: userBets.length,
+      totalWagered: wagered,
+      totalPayout: payout,
+      profitLoss: payout - wagered,
+      winCount: wins,
+      loseCount: losses,
+    };
+  }, [allBets, address]);
+
+  const { totalBets, totalWagered, totalPayout, profitLoss, winCount, loseCount } = stats;
+
+  const winRate = totalBets > 0 ? (winCount / totalBets) * 100 : 0;
+  const isProfit = profitLoss >= 0;
+
+  // Creative title based on state
+  const getTitle = () => {
+    if (!address) return "Connect to Track Stats";
+    if (totalBets === 0) return "You gotta play to profit! 🎲";
+    if (totalBets === 1) return `Your First Bet Result`;
+    return `Profit/Loss after ${totalBets} bets`;
+  };
+
+  return (
+    <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <h2 className="text-lg font-bold text-white mb-4">{getTitle()}</h2>
+
+      {!address ? (
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">🔒</div>
+          <p className="text-slate-400">Connect your wallet to view your stats</p>
+        </div>
+      ) : isLoadingHistory && totalBets === 0 ? (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-slate-400">Loading your stats...</p>
+        </div>
+      ) : totalBets === 0 ? (
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">🎰</div>
+          <p className="text-slate-400 mb-2">No bets yet!</p>
+          <p className="text-slate-500 text-sm">Place your first bet to start tracking your profit!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Profit/Loss - Collapsible */}
+          <div
+            className={`rounded-lg p-3 cursor-pointer transition-all ${
+              isProfit ? 'bg-green-500/20 border border-green-500/50 hover:bg-green-500/30' : 'bg-red-500/20 border border-red-500/50 hover:bg-red-500/30'
+            }`}
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className={`text-2xl font-bold flex items-center gap-2 ${
+                  isProfit ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {isProfit ? '📈' : '📉'}
+                  {isProfit ? '+' : ''}{profitLoss.toFixed(2)} HTR
+                </div>
+                <div className="text-slate-400 text-xs mt-1">
+                  {winCount}W / {loseCount}L • {winRate.toFixed(0)}% win rate
+                </div>
+              </div>
+              <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                <span className="text-slate-400">▼</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Expanded Details */}
+          {isExpanded && (
+            <div className="space-y-2 animate-fadeIn">
+              {/* Compact Grid Stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-700/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs mb-1">Total Bets</div>
+                  <div className="text-white text-lg font-bold">{totalBets}</div>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs mb-1">Wins</div>
+                  <div className="text-green-400 text-lg font-bold">{winCount}</div>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs mb-1">Losses</div>
+                  <div className="text-red-400 text-lg font-bold">{loseCount}</div>
+                </div>
+              </div>
+
+              {/* Wagered and Payout */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-700/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs mb-1">Total Wagered</div>
+                  <div className="text-white text-sm font-bold">{totalWagered.toFixed(2)} HTR</div>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs mb-1">Total Payout</div>
+                  <div className="text-white text-sm font-bold">{totalPayout.toFixed(2)} HTR</div>
+                </div>
+              </div>
+
+              {/* Fun fact */}
+              <div className="bg-slate-700/30 rounded-lg p-2 text-center">
+                <p className="text-slate-400 text-xs">
+                  {isProfit
+                    ? `🎉 You're up ${profitLoss.toFixed(2)} HTR! Keep it going!`
+                    : `💪 Down ${Math.abs(profitLoss).toFixed(2)} HTR - time to turn it around!`}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

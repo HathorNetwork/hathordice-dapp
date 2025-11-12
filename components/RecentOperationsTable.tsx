@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatAddress } from '@/lib/utils';
 
@@ -18,43 +17,18 @@ interface RecentOperationsTableProps {
 }
 
 export default function RecentOperationsTable({ selectedToken }: RecentOperationsTableProps) {
-  const { getContractIdForToken, coreAPI, address } = useHathor();
-  const [operations, setOperations] = useState<Operation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { allTransactions, address, isLoadingHistory, lastHistoryUpdate, refreshHistory, getContractIdForToken } = useHathor();
 
-  const fetchOperations = useCallback(async () => {
-    const contractId = getContractIdForToken(selectedToken);
-    if (!contractId) {
-      return;
-    }
+  const contractId = getContractIdForToken(selectedToken);
 
-    setIsLoading(true);
-    try {
-      const history = await coreAPI.getContractHistory(contractId, 50);
-      // Filter for claim_balance, remove_liquidity, and add_liquidity operations
-      const relevantOps = history.transactions.filter(
-        (tx: any) =>
-          tx.nc_method === 'claim_balance' ||
-          tx.nc_method === 'remove_liquidity' ||
-          tx.nc_method === 'add_liquidity'
-      );
-      setOperations(relevantOps);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to fetch operations:', error);
-      setOperations([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedToken, getContractIdForToken, coreAPI]);
-
-  useEffect(() => {
-    fetchOperations();
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchOperations, 10000);
-    return () => clearInterval(interval);
-  }, [fetchOperations]);
+  // Filter operations from centralized data
+  const operations = allTransactions.filter(
+    (tx) =>
+      tx.contractId === contractId &&
+      (tx.nc_method === 'claim_balance' ||
+       tx.nc_method === 'remove_liquidity' ||
+       tx.nc_method === 'add_liquidity')
+  );
 
   const getOperationStatus = (op: Operation) => {
     if (op.is_voided) {
@@ -79,9 +53,9 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
   };
 
   const formatLastUpdated = () => {
-    if (!lastUpdated) return '';
-    const date = lastUpdated.toLocaleDateString();
-    const time = lastUpdated.toLocaleTimeString();
+    if (!lastHistoryUpdate) return '';
+    const date = lastHistoryUpdate.toLocaleDateString();
+    const time = lastHistoryUpdate.toLocaleTimeString();
     return `${date} ${time}`;
   };
 
@@ -90,23 +64,28 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-white">Recent Operations</h2>
-          {lastUpdated && (
+          {lastHistoryUpdate && (
             <p className="text-xs text-slate-400 mt-1">
               Last updated at {formatLastUpdated()}
             </p>
           )}
         </div>
         <button
-          onClick={fetchOperations}
-          disabled={isLoading}
+          onClick={refreshHistory}
+          disabled={isLoadingHistory}
           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
         >
-          <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+          <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
           Refresh
         </button>
       </div>
 
-      {operations.length === 0 ? (
+      {isLoadingHistory && operations.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-slate-400">Loading operations...</p>
+        </div>
+      ) : operations.length === 0 ? (
         <div className="text-center py-8 text-slate-400">
           No recent operations found
         </div>

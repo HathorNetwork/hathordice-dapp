@@ -34,8 +34,12 @@ export class HathorCoreAPI {
     };
   }
 
-  async getContractHistory(contractId: string, limit: number = 50): Promise<ContractHistory> {
-    const response = await fetch(`${this.baseUrl}/nano_contract/history?id=${contractId}&count=${limit}&include_nc_events=true`);
+  async getContractHistory(contractId: string, limit: number = 50, after?: string): Promise<ContractHistory> {
+    let url = `${this.baseUrl}/nano_contract/history?id=${contractId}&count=${limit}&include_nc_events=true`;
+    if (after) {
+      url += `&after=${after}`;
+    }
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch contract history: ${response.statusText}`);
     }
@@ -52,6 +56,7 @@ export class HathorCoreAPI {
         nc_events: tx.nc_events,
       })) || [],
       total: data.history?.length || 0,
+      hasMore: data.has_more || false,
     };
   }
 

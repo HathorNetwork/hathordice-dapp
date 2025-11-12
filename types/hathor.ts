@@ -17,6 +17,7 @@ export interface BlueprintInfo {
 export interface ContractHistory {
   transactions: ContractTransaction[];
   total: number;
+  hasMore: boolean;
 }
 
 export interface NanoContractEvent {
@@ -32,6 +33,7 @@ export interface ContractTransaction {
   is_voided: boolean;
   nc_args_decoded?: number[];
   nc_events?: NanoContractEvent[];
+  contractId?: string;
 }
 
 export interface HathorRPCRequest {

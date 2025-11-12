@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bet } from '@/types';
 import { formatNumber, formatAddress } from '@/lib/utils';
 import { useHathor } from '@/contexts/HathorContext';
@@ -8,46 +8,28 @@ import HelpIcon from '@/components/HelpIcon';
 import BetResultNotification from '@/components/BetResultNotification';
 
 export default function RecentBetsTable() {
-  const { fetchRecentBets } = useHathor();
-  const [bets, setBets] = useState<Bet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { allBets, isLoadingHistory, lastHistoryUpdate, refreshHistory } = useHathor();
   const [notificationBet, setNotificationBet] = useState<Bet | null>(null);
   const previousBetsRef = useRef<Map<string, Bet>>(new Map());
 
-  const loadBets = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const recentBets = await fetchRecentBets();
+  // Check for automatic transitions when allBets changes
+  useEffect(() => {
+    allBets.forEach((bet) => {
+      if (bet.isYourBet) {
+        const previousBet = previousBetsRef.current.get(bet.id);
 
-      // Check for state changes in user's bets (automatic transitions)
-      recentBets.forEach((bet) => {
-        if (bet.isYourBet) {
-          const previousBet = previousBetsRef.current.get(bet.id);
-
-          // Detect transition from pending to win/lose
-          if (previousBet && previousBet.result === 'pending' &&
-              (bet.result === 'win' || bet.result === 'lose')) {
-            // Show notification for this bet
-            setNotificationBet(bet);
-          }
-
-          // Update the reference
-          previousBetsRef.current.set(bet.id, bet);
+        // Detect transition from pending to win/lose
+        if (previousBet && previousBet.result === 'pending' &&
+            (bet.result === 'win' || bet.result === 'lose')) {
+          // Show notification for this bet
+          setNotificationBet(bet);
         }
-      });
 
-      setBets(recentBets);
-      setLastUpdated(new Date());
-    } catch (err: any) {
-      console.error('Failed to load recent bets:', err);
-      setError(err.message || 'Failed to load recent bets');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchRecentBets]);
+        // Update the reference
+        previousBetsRef.current.set(bet.id, bet);
+      }
+    });
+  }, [allBets]);
 
   const handleResultClick = (bet: Bet) => {
     // Only show animation for win/lose results
@@ -56,16 +38,10 @@ export default function RecentBetsTable() {
     }
   };
 
-  useEffect(() => {
-    loadBets();
-    const interval = setInterval(loadBets, 10000);
-    return () => clearInterval(interval);
-  }, [loadBets]);
-
   const formatLastUpdated = () => {
-    if (!lastUpdated) return '';
-    const date = lastUpdated.toLocaleDateString();
-    const time = lastUpdated.toLocaleTimeString();
+    if (!lastHistoryUpdate) return '';
+    const date = lastHistoryUpdate.toLocaleDateString();
+    const time = lastHistoryUpdate.toLocaleTimeString();
     return `${date} ${time}`;
   };
 
@@ -111,47 +87,32 @@ export default function RecentBetsTable() {
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             📊 RECENT BETS
           </h2>
-          {lastUpdated && !error && (
+          {lastHistoryUpdate && (
             <p className="text-xs text-slate-400 mt-1">
               Last updated at {formatLastUpdated()}
             </p>
           )}
-          {error && (
-            <p className="text-xs text-red-400 mt-1">
-              ⚠️ {error}
-            </p>
-          )}
         </div>
         <button
-          onClick={loadBets}
-          disabled={loading}
+          onClick={refreshHistory}
+          disabled={isLoadingHistory}
           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
         >
-          <span className={loading ? 'animate-spin' : ''}>🔄</span>
+          <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
           Refresh
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        {loading && bets.length === 0 ? (
+        {isLoadingHistory && allBets.length === 0 ? (
           <div className="p-8 text-center">
             <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
             <p className="text-slate-400">Loading recent bets...</p>
           </div>
-        ) : error && bets.length === 0 ? (
+        ) : allBets.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="text-4xl mb-4">⚠️</div>
-            <p className="text-red-400 mb-4">{error}</p>
-            <button
-              onClick={loadBets}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : bets.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-slate-400">No bets yet. Be the first to play!</p>
+            <div className="text-4xl mb-4">🎲</div>
+            <p className="text-slate-400">No bets yet. Place a bet to get started!</p>
           </div>
         ) : (
           <table className="w-full">
@@ -172,7 +133,7 @@ export default function RecentBetsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {bets.map((bet) => (
+              {allBets.map((bet) => (
                 <tr
                   key={bet.id}
                   className={`hover:bg-slate-700/50 transition-colors ${
