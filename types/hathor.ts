@@ -19,6 +19,10 @@ export interface ContractHistory {
   total: number;
 }
 
+export interface NanoContractEvent {
+  data: string;
+}
+
 export interface ContractTransaction {
   tx_id: string;
   timestamp: number;
@@ -27,7 +31,7 @@ export interface ContractTransaction {
   first_block: string | null;
   is_voided: boolean;
   nc_args_decoded?: number[];
-  nc_events?: string[];
+  nc_events?: NanoContractEvent[];
 }
 
 export interface HathorRPCRequest {

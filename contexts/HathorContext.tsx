@@ -254,7 +254,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
         for (const tx of history.transactions) {
           if (tx.nc_method === 'place_bet') {
             // Check if the bet is from the connected wallet
-            const isYourBet = address && tx.nc_caller.toLowerCase() === address.toLowerCase();
+            const isYourBet = !!(address && tx.nc_caller.toLowerCase() === address.toLowerCase());
 
             // If nc_args_decoded doesn't exist or is invalid, treat as pending
             let amount = 0;

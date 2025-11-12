@@ -125,7 +125,7 @@ export default function BetResultNotification({ bet, onComplete }: BetResultNoti
               </div>
               <div className="bg-slate-700 rounded-lg p-4 mt-4">
                 <p className="text-yellow-400 font-semibold mb-2">
-                  💪 Don't give up!
+                  💪 Don&apos;t give up!
                 </p>
                 <p className="text-slate-300 text-sm">
                   Every loss brings you closer to your next big win. Try again and turn it around!
