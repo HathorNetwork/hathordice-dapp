@@ -10,10 +10,12 @@ import RecentOperationsTable from '@/components/RecentOperationsTable';
 import ProfitLossCard from '@/components/ProfitLossCard';
 import TokenSelector from '@/components/TokenSelector';
 import PlaceBetCard from '@/components/PlaceBetCard';
+import FortuneTigerBetCard from '@/components/FortuneTigerBetCard';
 import AddLiquidityCard from '@/components/AddLiquidityCard';
 import RemoveLiquidityCard from '@/components/RemoveLiquidityCard';
 import { ContractInfoCompact } from '@/components/ContractInfoCompact';
 import { NetworkSelector } from '@/components/NetworkSelector';
+import { UIModeSwitcher, type UIMode } from '@/components/UIModeSwitcher';
 import HelpIcon from '@/components/HelpIcon';
 import { formatBalance } from '@/lib/utils';
 import { toast } from '@/lib/toast';
@@ -31,6 +33,20 @@ export default function Home() {
   const [isRefreshingContract, setIsRefreshingContract] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [uiMode, setUIMode] = useState<UIMode>('classic');
+
+  // Load UI mode preference from localStorage
+  useEffect(() => {
+    const storedMode = localStorage.getItem('ui_mode') as UIMode | null;
+    if (storedMode && (storedMode === 'classic' || storedMode === 'fortune-tiger')) {
+      setUIMode(storedMode);
+    }
+  }, []);
+
+  const handleModeChange = (mode: UIMode) => {
+    setUIMode(mode);
+    localStorage.setItem('ui_mode', mode);
+  };
 
   const handleCardToggle = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
@@ -159,6 +175,16 @@ export default function Home() {
   };
 
   const contractState = getContractStateForToken(selectedToken);
+
+  // If in Fortune Tiger mode, render full-screen slot machine
+  if (uiMode === 'fortune-tiger') {
+    return (
+      <div className="relative">
+        <FortuneTigerBetCard selectedToken={selectedToken} />
+        <UIModeSwitcher currentMode={uiMode} onModeChange={handleModeChange} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -359,6 +385,9 @@ export default function Home() {
       <footer className="mt-8 text-center text-slate-500 text-sm">
         <p>HathorDice {APP_VERSION}</p>
       </footer>
+
+      {/* UI Mode Switcher - Only show in classic mode */}
+      <UIModeSwitcher currentMode={uiMode} onModeChange={handleModeChange} />
     </div>
   );
 }

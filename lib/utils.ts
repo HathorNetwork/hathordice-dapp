@@ -76,3 +76,29 @@ export function formatBalance(balance: bigint | number, decimals: number = 2): s
   }
   return (balance / 100).toFixed(decimals);
 }
+
+// Fortune Tiger Mode Utilities
+export function multiplierToThreshold(
+  multiplier: number,
+  randomBitLength: number = 16,
+  houseEdgeBasisPoints: number = 200
+): number {
+  const maxValue = Math.pow(2, randomBitLength);
+  const houseEdge = houseEdgeBasisPoints / 10000;
+  return Math.floor(maxValue / (multiplier / (1 - houseEdge)));
+}
+
+export interface FortuneTigerMultiplier {
+  multiplier: number;
+  label: string;
+  color: string;
+  winChance: number;
+}
+
+export const FORTUNE_TIGER_MULTIPLIERS: FortuneTigerMultiplier[] = [
+  { multiplier: 1.5, label: '1.5x', color: 'green', winChance: 65.3 },
+  { multiplier: 2, label: '2x', color: 'blue', winChance: 49.0 },
+  { multiplier: 3, label: '3x', color: 'purple', winChance: 32.7 },
+  { multiplier: 5, label: '5x', color: 'orange', winChance: 19.6 },
+  { multiplier: 10, label: '10x', color: 'red', winChance: 9.8 },
+];

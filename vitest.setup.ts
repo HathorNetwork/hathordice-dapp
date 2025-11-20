@@ -68,6 +68,9 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
+  root = null
+  rootMargin = ''
+  thresholds = []
   constructor() {}
   disconnect() {}
   observe() {}
@@ -75,4 +78,4 @@ global.IntersectionObserver = class IntersectionObserver {
     return []
   }
   unobserve() {}
-}
+} as any
