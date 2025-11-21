@@ -67,14 +67,15 @@ export function SlotMachineAnimation({
       <GoldFrame className="mb-8">
         {/* 5x3 Grid - Connected Columns */}
         <div className="grid grid-cols-5 gap-0 p-1 bg-white relative overflow-hidden rounded-2xl border-4 border-white">
-          {/* Render 5 Columns */}
+          {/* Render 5 Columns - Each with different spin speed */}
           {reelFruits.map((targetFruit, colIndex) => (
             <div key={colIndex} className="relative border-r-2 border-yellow-500 last:border-0">
               <SlotMachineReel
                 finalFruit={targetFruit}
                 isSpinning={isSpinning}
-                duration={2}
-                delay={colIndex * 0.2}
+                duration={1.5 + (colIndex * 0.3)}
+                delay={colIndex * 0.15}
+                spinSpeed={0.3 + (colIndex * 0.05)}
                 size="full-column"
               />
 

@@ -8,6 +8,7 @@ interface SlotMachineReelProps {
   isSpinning: boolean;
   duration?: number;
   delay?: number;
+  spinSpeed?: number;
   size?: 'normal' | 'large' | 'small' | 'full-column';
 }
 
@@ -26,6 +27,7 @@ export function SlotMachineReel({
   isSpinning,
   duration = 2,
   delay = 0,
+  spinSpeed = 0.4,
   size = 'normal'
 }: SlotMachineReelProps) {
   const [scope, animate] = useAnimate();
@@ -50,44 +52,39 @@ export function SlotMachineReel({
     let isMounted = true;
 
     if (isSpinning) {
-      // Spin continuously with CSS-like animation
+      // Spin continuously at the specified speed (all in same direction - downward)
       animate(
         scope.current,
         { y: [0, -(FRUITS.length * FRUIT_HEIGHT), 0] },
         {
-          duration: 0.4,
+          duration: spinSpeed,
           ease: 'linear',
           repeat: Infinity,
           repeatType: 'loop',
         }
       );
     } else if (finalFruit) {
-      // Stop at final fruit with smooth deceleration
+      // Stop at final fruit with realistic deceleration
       const baseIndex = FRUITS.indexOf(finalFruit);
 
-      // We want to stop at the instance in the MIDDLE set of fruits
-      // to ensure we have prev/next items available for the 3-row view.
-      // Target index in the triple array:
-      // Set 1: 0 to N-1
-      // Set 2: N to 2N-1 (We target here)
-      // Set 3: 2N to 3N-1
+      // Target index in the 4th set of fruits (middle of 6 sets) to ensure plenty of buffer
+      // This gives us room for the extra spin cycles
+      let targetIndex = (FRUITS.length * 3) + baseIndex;
 
-      let targetIndex = FRUITS.length + baseIndex;
-
-      // If we are in 'full-column' mode, we want the finalFruit to be in the MIDDLE row.
-      // The container shows 3 items. The 'y' transforms the top of the strip.
-      // To center the target, we need to shift UP by (targetIndex - 1).
-      // This shows [target-1, target, target+1].
+      // For full-column mode, center the target in the middle row
       if (size === 'full-column') {
         targetIndex = targetIndex - 1;
       }
 
+      const finalY = -(targetIndex * FRUIT_HEIGHT);
+
+      // Animate with deceleration curve
       animate(
         scope.current,
-        { y: -(targetIndex * FRUIT_HEIGHT) },
+        { y: finalY },
         {
-          duration: duration + delay,
-          ease: [0.22, 1, 0.36, 1],
+          duration: duration,
+          ease: [0.25, 0.1, 0.25, 1], // Custom cubic-bezier for smooth deceleration
           delay: delay,
         }
       );
@@ -99,7 +96,7 @@ export function SlotMachineReel({
     return () => {
       isMounted = false;
     };
-  }, [isSpinning, finalFruit, duration, delay, animate, scope, sizeConfig.height]);
+  }, [isSpinning, finalFruit, duration, delay, spinSpeed, animate, scope, sizeConfig.height, size]);
 
   return (
     <div className={`relative ${sizeConfig.width} ${sizeConfig.containerHeight} overflow-hidden rounded-none`}>
@@ -108,8 +105,8 @@ export function SlotMachineReel({
         ref={scope}
         className="flex flex-col items-center w-full"
       >
-        {/* Render 3 sets of fruits for seamless looping and context */}
-        {[...FRUITS, ...FRUITS, ...FRUITS].map((fruit, index) => (
+        {/* Render 6 sets of fruits for seamless looping during extended spins */}
+        {[...FRUITS, ...FRUITS, ...FRUITS, ...FRUITS, ...FRUITS, ...FRUITS].map((fruit, index) => (
           <div
             key={index}
             className={`flex items-center justify-center w-full last:border-0`}
