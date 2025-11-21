@@ -61,8 +61,8 @@ export function BigWin({ payout, token, onComplete }: BigWinProps) {
     return () => clearTimeout(timer);
   }, [onComplete, hasPlayed]);
 
-  // Generate falling coins - reduced for performance
-  const coins = useMemo(() => Array.from({ length: 15 }, (_, i) => ({
+  // Generate falling coins - minimal for performance
+  const coins = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     delay: Math.random() * 0.8,

@@ -12,6 +12,7 @@ export type AnimationType =
   | 'almost-there'
   | 'better-luck'
   | 'video-win-1'
+  | 'video-win-2'
   | 'video-lose-1'
   | 'video-lose-2'
   | 'video-lose-3'
@@ -60,12 +61,21 @@ const ANIMATIONS: Animation[] = [
   },
   {
     id: 'video-win-1',
-    name: 'Win Video',
+    name: 'Win Video 1',
     emoji: '🎬',
     description: 'Play a winning video celebration',
     type: 'win',
     isVideo: true,
     videoPath: '/videos/win/b0386440-e311-447f-9ad9-66fcae177139.mp4',
+  },
+  {
+    id: 'video-win-2',
+    name: 'Victory Is Yours',
+    emoji: '🎬',
+    description: 'Victory is yours celebration video',
+    type: 'win',
+    isVideo: true,
+    videoPath: '/videos/win/victory-is-yours.mp4',
   },
   {
     id: 'try-again',

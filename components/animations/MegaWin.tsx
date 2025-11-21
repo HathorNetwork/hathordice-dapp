@@ -94,12 +94,12 @@ export function MegaWin({ payout, token, onComplete }: MegaWinProps) {
     };
   }, [onComplete, hasPlayed]);
 
-  // Generate firework particles - reduced for performance
-  const fireworks = useMemo(() => Array.from({ length: 20 }, (_, i) => ({
+  // Generate firework particles - minimal for performance
+  const fireworks = useMemo(() => Array.from({ length: 10 }, (_, i) => ({
     id: i,
     x: 20 + Math.random() * 60,
     y: 20 + Math.random() * 60,
-    angle: (i * 360) / 20,
+    angle: (i * 360) / 10,
     color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'][Math.floor(Math.random() * 6)],
   })), []);
 

@@ -92,8 +92,8 @@ export function Jackpot({ payout, token, onComplete }: JackpotProps) {
     };
   }, [onComplete, hasPlayed]);
 
-  // Rainbow stars - reduced for performance
-  const stars = useMemo(() => Array.from({ length: 20 }, (_, i) => ({
+  // Rainbow stars - minimal for performance
+  const stars = useMemo(() => Array.from({ length: 10 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,

@@ -51,152 +51,12 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAnimationSelector, setShowAnimationSelector] = useState(false);
-  const [spinAudio, setSpinAudio] = useState<HTMLAudioElement | null>(null);
   const [debugMode, setDebugMode] = useState(false);
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
-  const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
 
   const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
   const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
   const maxBetAmount = contractState?.max_bet_amount || 1000000;
-
-  // Initialize audio
-  useEffect(() => {
-    // Try to load spinning sound effect first
-    const audio = new Audio();
-    audio.src = '/sounds/spin.mp3';
-    audio.loop = true;
-    audio.volume = 0.3;
-
-    let audioLoaded = false;
-
-    // Test if audio loads successfully
-    const testAudio = () => {
-      audio.play().then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-        audioLoaded = true;
-        console.log('✅ Audio file loaded successfully');
-      }).catch(() => {
-        console.log('⚠️ Spin audio file blocked by browser');
-      });
-    };
-
-    audio.addEventListener('canplaythrough', testAudio, { once: true });
-    audio.addEventListener('error', () => {
-      console.log('❌ Spin audio file not found at /sounds/spin.mp3');
-      console.log('🔊 Creating fallback Web Audio API sound...');
-
-      // Create fallback audio using Web Audio API
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      setAudioContext(ctx);
-    });
-
-    setSpinAudio(audio);
-
-    return () => {
-      audio.pause();
-      audio.src = '';
-    };
-  }, []);
-
-  // Control audio based on spinning state
-  useEffect(() => {
-    if (isSpinning) {
-      // Try to play MP3 audio first
-      if (spinAudio) {
-        const playPromise = spinAudio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('🔊 Playing MP3 audio');
-            })
-            .catch(err => {
-              console.log('⚠️ MP3 audio blocked or failed:', err.message);
-              // Fallback to Web Audio API if MP3 fails
-              if (audioContext) {
-                startWebAudioSpinSound();
-              }
-            });
-        }
-      }
-      // Use Web Audio API if no MP3 audio available
-      else if (audioContext) {
-        startWebAudioSpinSound();
-      }
-    } else {
-      // Stop all audio
-      if (spinAudio) {
-        spinAudio.pause();
-        spinAudio.currentTime = 0;
-      }
-      // Stop all oscillators
-      oscillators.forEach(osc => {
-        try {
-          osc.stop();
-        } catch (e) {
-          // Oscillator might already be stopped
-        }
-      });
-      setOscillators([]);
-    }
-  }, [isSpinning, spinAudio, audioContext]);
-
-  // Create spinning sound using Web Audio API
-  const startWebAudioSpinSound = () => {
-    if (!audioContext) return;
-
-    try {
-      // Stop any existing oscillators
-      oscillators.forEach(osc => {
-        try {
-          osc.stop();
-        } catch (e) {
-          // Already stopped
-        }
-      });
-
-      // Create a simple spinning/mechanical sound
-      const osc1 = audioContext.createOscillator();
-      const osc2 = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      const filter = audioContext.createBiquadFilter();
-
-      // Primary oscillator - lower frequency for mechanical rumble
-      osc1.type = 'sawtooth';
-      osc1.frequency.value = 100;
-
-      // Secondary oscillator - creates the "ticking" effect
-      osc2.type = 'square';
-      osc2.frequency.value = 9;
-
-      // Filter to make it sound more mechanical
-      filter.type = 'lowpass';
-      filter.frequency.value = 1200;
-      filter.Q.value = 1;
-
-      // Set volume lower for the oscillators
-      gainNode.gain.value = 0.12;
-
-      // Connect the audio graph
-      osc1.connect(gainNode);
-      osc2.connect(gainNode);
-      gainNode.connect(filter);
-      filter.connect(audioContext.destination);
-
-      // Start the oscillators immediately
-      osc1.start();
-      osc2.start();
-
-      // Store both oscillators for cleanup
-      setOscillators([osc1, osc2]);
-
-      console.log('🔊 Playing Web Audio API spinning sound');
-    } catch (err) {
-      console.log('Failed to create Web Audio sound:', err);
-    }
-  };
 
   // Calculate threshold and payout when multiplier or bet amount changes
   useEffect(() => {
@@ -225,6 +85,7 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
         'mega-win',
         'jackpot',
         'video-win-1',
+        'video-win-2',
       ];
       const loseAnimations: AnimationType[] = [
         'try-again',

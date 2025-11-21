@@ -16,13 +16,13 @@ export function VideoPlayer({ videoPath, result, payout, token, onComplete }: Vi
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasEnded, setHasEnded] = useState(false);
 
-  // Generate falling particles (reduced count for better performance)
-  const particles = useMemo(() => Array.from({ length: 15 }, (_, i) => ({
+  // Generate falling particles (minimal count for performance)
+  const particles = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     delay: Math.random() * 2,
     duration: 4 + Math.random() * 2,
-    size: 24 + Math.random() * 16,
+    size: 28 + Math.random() * 16,
   })), []);
 
   useEffect(() => {

@@ -98,8 +98,8 @@ export function WinnerChickenDinner({ payout, token, onComplete }: WinnerChicken
     };
   }, [onComplete]);
 
-  // Generate random confetti pieces - reduced count for performance
-  const confettiPieces = useMemo(() => Array.from({ length: 25 }, (_, i) => ({
+  // Generate random confetti pieces - minimal for performance
+  const confettiPieces = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     delay: Math.random() * 0.5,

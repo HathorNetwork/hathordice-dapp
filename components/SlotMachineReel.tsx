@@ -50,33 +50,17 @@ export function SlotMachineReel({
     let isMounted = true;
 
     if (isSpinning) {
-      // Spin continuously in a loop until stopped
-      const spinContinuously = async () => {
-        // Reset to start position first
-        await animate(scope.current, { y: 0 }, { duration: 0 });
-
-        while (isMounted && isSpinning) {
-          // Spin through all fruits
-          // We spin far enough to look continuous
-          await animate(
-            scope.current,
-            { y: -(FRUITS.length * FRUIT_HEIGHT) },
-            {
-              duration: 0.5,
-              ease: 'linear',
-            }
-          );
-          // Only reset if still spinning
-          if (isMounted && isSpinning) {
-            await animate(
-              scope.current,
-              { y: 0 },
-              { duration: 0 }
-            );
-          }
+      // Spin continuously with CSS-like animation
+      animate(
+        scope.current,
+        { y: [0, -(FRUITS.length * FRUIT_HEIGHT), 0] },
+        {
+          duration: 0.4,
+          ease: 'linear',
+          repeat: Infinity,
+          repeatType: 'loop',
         }
-      };
-      spinContinuously();
+      );
     } else if (finalFruit) {
       // Stop at final fruit with smooth deceleration
       const baseIndex = FRUITS.indexOf(finalFruit);
@@ -108,30 +92,14 @@ export function SlotMachineReel({
         }
       );
     } else {
-      // Idle slow animation
-      const idleAnimation = async () => {
-        await animate(scope.current, { y: 0 }, { duration: 0 });
-        while (isMounted && !isSpinning) {
-          await animate(
-            scope.current,
-            { y: -(FRUITS.length * FRUIT_HEIGHT) },
-            {
-              duration: 20, // Very slow 20 seconds per full cycle
-              ease: 'linear',
-            }
-          );
-          if (isMounted && !isSpinning) {
-            await animate(scope.current, { y: 0 }, { duration: 0 });
-          }
-        }
-      };
-      idleAnimation();
+      // Static position when idle
+      animate(scope.current, { y: 0 }, { duration: 0 });
     }
 
     return () => {
       isMounted = false;
     };
-  }, [isSpinning, finalFruit, duration, delay, animate, scope, sizeConfig, size]);
+  }, [isSpinning, finalFruit, duration, delay, animate, scope, sizeConfig.height]);
 
   return (
     <div className={`relative ${sizeConfig.width} ${sizeConfig.containerHeight} overflow-hidden rounded-none`}>
