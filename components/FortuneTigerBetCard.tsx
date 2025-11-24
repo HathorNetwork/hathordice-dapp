@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
@@ -44,6 +44,7 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
   const [potentialPayout, setPotentialPayout] = useState(20);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isIdleSpinning, setIsIdleSpinning] = useState(false);
   const [luckyNumber, setLuckyNumber] = useState(0);
   const [pendingBetTxId, setPendingBetTxId] = useState<string | null>(null);
   const [betResult, setBetResult] = useState<'win' | 'lose' | null>(null);
@@ -52,6 +53,39 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAnimationSelector, setShowAnimationSelector] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [preloadedVideos, setPreloadedVideos] = useState<{ win: string | null; lose: string | null }>({ win: null, lose: null });
+
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIMEOUT = 15000; // 15 seconds of inactivity
+
+  // Video animation lists for preloading
+  const WIN_VIDEO_PATHS = [
+    '/videos/win/b0386440-e311-447f-9ad9-66fcae177139.mp4',
+    '/videos/win/victory-is-yours.mp4',
+  ];
+
+  const LOSE_VIDEO_PATHS = [
+    '/videos/lose/4a51eae1-9047-41d8-8a99-2d03cb543766.mp4',
+    '/videos/lose/51b786d4-3f76-4881-9aa6-95f6f106c4cc.mp4',
+    '/videos/lose/e8029c41-709d-4dd6-85ef-fa15357ce592.mp4',
+    '/videos/lose/fracasso-baiano-1.mp4',
+    '/videos/lose/fracasso-baiano-2.mp4',
+    '/videos/lose/fracasso-baiano-3.mp4',
+  ];
+
+  // Preload videos while spinning
+  const preloadVideos = () => {
+    const randomWinVideo = WIN_VIDEO_PATHS[Math.floor(Math.random() * WIN_VIDEO_PATHS.length)];
+    const randomLoseVideo = LOSE_VIDEO_PATHS[Math.floor(Math.random() * LOSE_VIDEO_PATHS.length)];
+    setPreloadedVideos({ win: randomWinVideo, lose: randomLoseVideo });
+
+    // Fetch videos to cache them
+    [randomWinVideo, randomLoseVideo].forEach(path => {
+      fetch(path).catch(() => {
+        // Silently fail - we just want to cache if possible
+      });
+    });
+  };
 
   const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
@@ -106,10 +140,8 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
         selectedAnimation = loseAnimations[Math.floor(Math.random() * loseAnimations.length)];
       }
 
-      // Show animation after a delay
-      setTimeout(() => {
-        setActiveAnimation(selectedAnimation);
-      }, 500);
+      // Show animation immediately - no delay
+      setActiveAnimation(selectedAnimation);
     }
   }, [allBets, pendingBetTxId]);
 
@@ -135,6 +167,53 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Reset idle timer on user activity
+  const resetIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+    setIsIdleSpinning(false);
+
+    idleTimerRef.current = setTimeout(() => {
+      // Only start idle spinning if not currently spinning or in other interaction
+      if (!isSpinning && !isPlacingBet && !activeAnimation) {
+        setIsIdleSpinning(true);
+      }
+    }, IDLE_TIMEOUT);
+  };
+
+  // Set up idle timer and user interaction listeners
+  useEffect(() => {
+    resetIdleTimer();
+
+    const handleUserActivity = () => {
+      resetIdleTimer();
+    };
+
+    // Listen for various user interactions
+    window.addEventListener('mousedown', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+
+    return () => {
+      window.removeEventListener('mousedown', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    };
+  }, [isSpinning, isPlacingBet, activeAnimation]);
+
+  // Stop idle spinning when actual spinning starts
+  useEffect(() => {
+    if (isSpinning || isPlacingBet) {
+      setIsIdleSpinning(false);
+    }
+  }, [isSpinning, isPlacingBet]);
 
   const setQuickAmount = (percentage: number) => {
     const amount = totalBalance * percentage;
@@ -165,6 +244,10 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
     // Simulate wallet confirmation after 2 seconds
     setTimeout(() => {
       setIsPlacingBet(false);
+
+      // Preload videos while spinning
+      preloadVideos();
+
       // Start spinning AFTER wallet confirmation
       setIsSpinning(true);
       toast.success('🎰 Debug: Transaction confirmed! Spinning...');
@@ -184,10 +267,8 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
         setIsSpinning(false);
         setBetResult(isWin ? 'win' : 'lose');
 
-        // Show the selected animation after a delay
-        setTimeout(() => {
-          setActiveAnimation(animationId);
-        }, 500);
+        // Show the selected animation immediately
+        setActiveAnimation(animationId);
       }, 7000); // 7 seconds of spinning
     }, 2000); // 2 seconds for wallet confirmation
   };
@@ -242,6 +323,9 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
       const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance);
       setPendingBetTxId(result.response.hash);
 
+      // Preload videos while spinning
+      preloadVideos();
+
       // Start spinning AFTER wallet confirmation
       setIsSpinning(true);
       toast.success('🎰 Transaction confirmed! Spinning...');
@@ -289,7 +373,7 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
           {/* Slot Machine Area */}
           <div className="mb-8">
             <SlotMachineAnimation
-              isSpinning={isSpinning}
+              isSpinning={isSpinning || isIdleSpinning}
               finalNumber={luckyNumber}
               result={betResult}
             />

@@ -75,7 +75,7 @@ export function SlotMachineAnimation({
                 isSpinning={isSpinning}
                 duration={1.5 + (colIndex * 0.3)}
                 delay={colIndex * 0.15}
-                spinSpeed={0.3 + (colIndex * 0.05)}
+                spinSpeed={1.2 + (colIndex * 0.15)}
                 size="full-column"
               />
 
