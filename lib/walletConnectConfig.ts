@@ -4,7 +4,7 @@ export const WALLETCONNECT_METADATA = {
   name: 'HathorDice dApp',
   description: 'Decentralized dice game on Hathor Network',
   url: typeof window !== 'undefined' ? window.location.origin : 'https://hathordice.app',
-  icons: [typeof window !== 'undefined' ? `${window.location.origin}/icon.png` : 'https://hathordice.app/icon.png'],
+  icons: [typeof window !== 'undefined' ? `${window.location.origin}/images/icon.png` : 'https://hathordice.app/images/icon.png'],
 };
 
 export const RELAY_URL = 'wss://relay.walletconnect.com';

@@ -41,9 +41,9 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
   };
 
   const getOperationLabel = (method: string) => {
-    if (method === 'claim_balance') return '💸 Withdraw';
-    if (method === 'remove_liquidity') return '💸 Remove Liquidity';
-    if (method === 'add_liquidity') return '💰 Add Liquidity';
+    if (method === 'claim_balance') return 'Withdraw';
+    if (method === 'remove_liquidity') return 'Remove Liquidity';
+    if (method === 'add_liquidity') return 'Add Liquidity';
     return method;
   };
 
@@ -61,28 +61,17 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-white">Recent Operations</h2>
-          {lastHistoryUpdate && (
-            <p className="text-xs text-slate-400 mt-1">
-              Last updated at {formatLastUpdated()}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={refreshHistory}
-          disabled={isLoadingHistory}
-          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
-        >
-          <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
-          Refresh
-        </button>
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-white">Recent Operations</h2>
+        {lastHistoryUpdate && (
+          <p className="text-xs text-slate-400 mt-1">
+            Last updated at {formatLastUpdated()}
+          </p>
+        )}
       </div>
 
       {isLoadingHistory && operations.length === 0 ? (
         <div className="text-center py-8">
-          <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
           <p className="text-slate-400">Loading operations...</p>
         </div>
       ) : operations.length === 0 ? (
@@ -102,7 +91,7 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
               </tr>
             </thead>
             <tbody>
-              {operations.map((op) => {
+              {operations.slice(0, 20).map((op) => {
                 const status = getOperationStatus(op);
                 return (
                   <tr key={op.tx_id} className="border-b border-slate-700/50">

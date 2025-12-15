@@ -22,31 +22,28 @@ export function SlotMachineAnimation({
   // Define fruit symbols (Must match SlotMachineReel.tsx)
   const fruits = [
     '/images/cartoon_pharaoh.png',
-    '/images/cartoon_eye_of_horus.png',
+    '/images/icon.png',
     '/images/cartoon_scarab.png',
-    '/images/ankh.png',
+    '/images/cartoon_mummy.png',
     '/images/cartoon_anubis.png',
-    '/images/cartoon_pyramid.png',
-    '/images/lotus.png'
+    '/images/cartoon_pyramid.png'
   ];
 
   // For winning: all same fruit. For losing: different fruits
   // Use finalNumber to determine the fruits
-  // UPDATED FOR 5 REELS
+  // UPDATED FOR 3 REELS
   let reelFruits: string[];
   if (result === 'win') {
     // All same fruit - use finalNumber to pick which fruit
     const fruitIndex = finalNumber % fruits.length;
     const f = fruits[fruitIndex];
-    reelFruits = [f, f, f, f, f];
+    reelFruits = [f, f, f];
   } else {
     // Different fruits - use finalNumber to seed the selection
     reelFruits = [
       fruits[finalNumber % fruits.length],
       fruits[(finalNumber + 1) % fruits.length],
       fruits[(finalNumber + 2) % fruits.length],
-      fruits[(finalNumber + 3) % fruits.length],
-      fruits[(finalNumber + 4) % fruits.length],
     ];
   }
 
@@ -65,9 +62,9 @@ export function SlotMachineAnimation({
     <div className="w-full max-w-4xl mx-auto">
       {/* Gold Frame Container */}
       <GoldFrame className="mb-8">
-        {/* 5x3 Grid - Connected Columns */}
-        <div className="grid grid-cols-5 gap-0 p-1 bg-white relative overflow-hidden rounded-2xl border-4 border-white">
-          {/* Render 5 Columns - Each with different spin speed */}
+        {/* 3x3 Grid - Connected Columns */}
+        <div className="grid grid-cols-3 gap-0 p-1 bg-white relative overflow-hidden rounded-2xl border-4 border-white">
+          {/* Render 3 Columns - Each with different spin speed */}
           {reelFruits.map((targetFruit, colIndex) => (
             <div key={colIndex} className="relative border-r-2 border-yellow-500 last:border-0">
               <SlotMachineReel

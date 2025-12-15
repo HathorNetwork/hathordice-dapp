@@ -7,17 +7,19 @@ import { Web3Modal } from '@web3modal/standalone';
 import { getSdkError } from '@walletconnect/utils';
 import { WALLETCONNECT_PROJECT_ID } from '@/lib/walletConnectConfig';
 import { initializeWalletConnectClient } from '@/lib/walletConnectClient';
+import { Network } from '@/lib/config';
 
 interface IWalletConnectContext {
   client: Client | undefined;
   session: SessionTypes.Struct | undefined;
-  connect: (pairing?: { topic: string }) => Promise<void>;
+  connect: (targetNetwork?: Network, pairing?: { topic: string }) => Promise<void>;
   disconnect: () => Promise<void>;
   chains: string[];
   pairings: PairingTypes.Struct[];
   accounts: string[];
   setChains: React.Dispatch<React.SetStateAction<string[]>>;
   getFirstAddress: () => string;
+  getConnectedNetwork: () => Network | null;
   isConnected: boolean;
   isInitializing: boolean;
 }
@@ -72,6 +74,14 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
     }
     const [, , addr] = session.namespaces.hathor.accounts[0].split(':');
     return addr;
+  }, [session]);
+
+  const getConnectedNetwork = useCallback((): Network | null => {
+    if (!session?.namespaces?.hathor?.accounts?.[0]) {
+      return null;
+    }
+    const [, network] = session.namespaces.hathor.accounts[0].split(':');
+    return network as Network;
   }, [session]);
 
   const subscribeToEvents = useCallback(
@@ -155,7 +165,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
   }, []);
 
   const connect = useCallback(
-    async (pairing: { topic: string } | undefined) => {
+    async (targetNetwork?: Network, pairing?: { topic: string }) => {
       if (!client) {
         throw new Error('WalletConnect client is not initialized yet. Please wait a moment and try again.');
       }
@@ -163,6 +173,9 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
       if (session) {
         return;
       }
+
+      // Default to testnet if no network specified
+      const dappNetwork = targetNetwork || 'testnet';
 
       let unsubscribe: (() => void) | undefined;
 
@@ -176,7 +189,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
               'htr_signWithAddress',
               'htr_sendNanoContractTx',
             ],
-            chains: ['hathor:testnet'],
+            chains: [`hathor:${dappNetwork}`],
             events: [],
           },
         };
@@ -202,8 +215,25 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
           });
         });
 
-        const session = await Promise.race([approval(), modalClosedPromise]);
-        await onSessionConnected(session);
+        const newSession = await Promise.race([approval(), modalClosedPromise]);
+
+        // Extract network from the connected session
+        const connectedAccount = newSession.namespaces?.hathor?.accounts?.[0];
+        if (connectedAccount) {
+          const [, walletNetwork] = connectedAccount.split(':');
+
+          // Validate network matches
+          if (walletNetwork !== dappNetwork) {
+            // Disconnect the session since networks don't match
+            await client.disconnect({
+              topic: newSession.topic,
+              reason: getSdkError('USER_DISCONNECTED'),
+            });
+            throw new Error(`Network mismatch: wallet is on ${walletNetwork} but dapp requires ${dappNetwork}. Please switch your wallet to ${dappNetwork} and try again.`);
+          }
+        }
+
+        await onSessionConnected(newSession);
         setPairings(client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error('Failed to connect:', e);
@@ -248,11 +278,12 @@ export function WalletConnectProvider({ children }: { children: ReactNode | Reac
       connect,
       disconnect,
       getFirstAddress,
+      getConnectedNetwork,
       setChains,
       isConnected: !!session,
       isInitializing,
     }),
-    [pairings, accounts, chains, client, session, connect, disconnect, getFirstAddress, setChains, isInitializing]
+    [pairings, accounts, chains, client, session, connect, disconnect, getFirstAddress, getConnectedNetwork, setChains, isInitializing]
   );
 
   return <WalletConnectContext.Provider value={value}>{children}</WalletConnectContext.Provider>;

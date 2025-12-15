@@ -63,7 +63,7 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
     }
   };
 
-  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
+  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 190;
   const houseEdgePercent = (houseEdgeBasisPoints / 100).toFixed(2);
 
   return (
@@ -73,7 +73,7 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/50 transition-colors"
       >
         <span className="text-white font-medium flex items-center gap-2">
-          💧 ADD LIQUIDITY
+          ADD LIQUIDITY
           <HelpIcon text="Provide liquidity to the pool and earn a share of the house edge from all bets. Your liquidity helps pay out winners and you share in the profits when players lose." />
         </span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
@@ -102,17 +102,17 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span>ℹ️</span>
+          <div className="text-sm text-slate-400">
             <span>Earn fees from house edge ({houseEdgePercent}%)</span>
           </div>
 
           <button
             onClick={handleAddLiquidity}
             disabled={!isConnected || isAddingLiquidity || amount <= 0}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            className="w-full py-3 disabled:bg-slate-600 disabled:cursor-not-allowed font-medium rounded-lg transition-colors hover:opacity-90"
+            style={!isConnected || isAddingLiquidity || amount <= 0 ? { color: 'white' } : { background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}
           >
-            {isAddingLiquidity ? '⏳ Adding Liquidity...' : '💧 Add Liquidity'}
+            {isAddingLiquidity ? 'Adding Liquidity...' : 'Add Liquidity'}
           </button>
         </div>
       )}

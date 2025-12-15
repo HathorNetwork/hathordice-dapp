@@ -3,11 +3,12 @@ import React from 'react';
 interface GoldFrameProps {
     children: React.ReactNode;
     className?: string;
+    onClick?: (e: React.MouseEvent) => void;
 }
 
-export function GoldFrame({ children, className = '' }: GoldFrameProps) {
+export function GoldFrame({ children, className = '', onClick }: GoldFrameProps) {
     return (
-        <div className={`relative p-1 rounded-3xl bg-gradient-to-b from-yellow-600 via-yellow-200 to-yellow-700 shadow-2xl ${className}`}>
+        <div className={`relative p-1 rounded-3xl bg-gradient-to-b from-yellow-600 via-yellow-200 to-yellow-700 shadow-2xl ${className}`} onClick={onClick}>
             {/* Inner Bevel */}
             <div className="bg-gradient-to-b from-yellow-800 via-yellow-500 to-yellow-900 rounded-[20px] p-1">
                 {/* Pattern/Texture Layer (Optional) */}

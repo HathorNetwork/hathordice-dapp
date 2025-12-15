@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
-import { calculateMultiplier, calculatePayout, thresholdToWinChance, winChanceToThreshold, formatNumber, formatTokenAmount } from '@/lib/utils';
+import { calculateMultiplier, calculatePayout, thresholdToWinChance, winChanceToThreshold, formatNumber, formatTokenAmount, formatBalanceWithCommas } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import HelpIcon from '@/components/HelpIcon';
 
@@ -29,7 +29,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
   const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
-  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
+  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 190;
   const maxBetAmount = contractState?.max_bet_amount || 1000000;
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
     const maxAllowed = Number(maxBetAmount) / 100;
     if (betAmount > maxAllowed) {
-      toast.error(`Bet amount exceeds maximum of ${formatTokenAmount(Number(maxBetAmount))} ${selectedToken}`);
+      toast.error(`Bet amount exceeds maximum of ${formatBalanceWithCommas(Number(maxBetAmount))} ${selectedToken}`);
       return;
     }
 
@@ -109,7 +109,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
     <div className="space-y-4">
       <div>
         <label className="block text-sm text-slate-400 mb-2">
-          Bet Amount (Max: {formatTokenAmount(Number(maxBetAmount))} {selectedToken})
+          Bet Amount (Max: {formatBalanceWithCommas(Number(maxBetAmount))} {selectedToken})
         </label>
         <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
           <input
@@ -169,24 +169,6 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
             />
             <span className="text-slate-400">%</span>
           </div>
-          <div className="mt-3">
-            <div className="relative h-2 bg-slate-700 rounded-full overflow-hidden cursor-pointer"
-                 onClick={(e) => {
-                   const rect = e.currentTarget.getBoundingClientRect();
-                   const x = e.clientX - rect.left;
-                   const percentage = (x / rect.width) * 100;
-                   handleWinChanceChange(Math.max(0.001, Math.min(99.999, percentage)));
-                 }}>
-              <div
-                className="absolute h-full bg-blue-500 transition-all"
-                style={{ width: `${winChance}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-slate-500 mt-1">
-              <span>0%</span>
-              <span>100%</span>
-            </div>
-          </div>
         </div>
       ) : (
         <div>
@@ -208,20 +190,20 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
       <div className="bg-slate-900 rounded-lg p-4 space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-sm text-slate-400 flex items-center gap-1">
-            📊 Threshold:
+            Threshold:
             <HelpIcon text="The lucky number must be less than or equal to this threshold for you to win. Higher threshold = higher win chance but lower multiplier." />
           </span>
           <span className="text-white font-medium">{threshold.toLocaleString()}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-slate-400 flex items-center gap-1">
-            💰 Multiplier:
+            Multiplier:
             <HelpIcon text="Your bet amount will be multiplied by this number if you win. Lower win chance = higher multiplier." />
           </span>
           <span className="text-white font-medium">{formatNumber(multiplier)}x</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm text-slate-400">🎯 Potential Payout:</span>
+          <span className="text-sm text-slate-400">Potential Payout:</span>
           <span className="text-green-400 font-bold">{formatNumber(potentialPayout)} {selectedToken}</span>
         </div>
       </div>
@@ -229,9 +211,10 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
       <button
         onClick={handlePlaceBet}
         disabled={!isConnected || isPlacingBet}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+        className="w-full py-3 disabled:bg-slate-600 disabled:cursor-not-allowed font-medium rounded-lg transition-colors hover:opacity-90"
+        style={!isConnected || isPlacingBet ? { color: 'white' } : { background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}
       >
-        {isPlacingBet ? '⏳ Placing Bet...' : '🎲 Place Bet'}
+        {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
       </button>
     </div>
   );

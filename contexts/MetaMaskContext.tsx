@@ -2,13 +2,13 @@
 
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { HathorRPCService } from '@/lib/hathorRPC';
-import { config } from '@/lib/config';
+import { config, Network } from '@/lib/config';
 
 interface IMetaMaskContext {
   address: string | null;
   isConnected: boolean;
   isInstalled: boolean;
-  connect: () => Promise<void>;
+  connect: (targetNetwork?: Network) => Promise<void>;
   disconnect: () => Promise<void>;
   request: <T = any>(method: string, params?: any) => Promise<T>;
 }
@@ -71,17 +71,13 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
         });
 
         if (snaps?.[SNAP_ID]) {
-          // Get address from snap using RPC service
-          const result = await rpcService.getAddress({
-            network: 'testnet',
-            type: 'index',
-            index: 0
-          });
+          // Get wallet information from snap (no user approval required)
+          const result = await rpcService.getWalletInformation();
 
           // MetaMask Snap returns response in nested format
-          const addressData = (result as any)?.response || result;
-          if (addressData?.address) {
-            setAddress(addressData.address);
+          const walletInfo = (result as any)?.response || result;
+          if (walletInfo?.address0) {
+            setAddress(walletInfo.address0);
             setIsConnected(true);
           }
         }
@@ -93,10 +89,13 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
     checkPersistedConnection();
   }, [rpcService]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (targetNetwork?: Network) => {
     if (!window.ethereum) {
       throw new Error('MetaMask is not installed. Please install MetaMask extension.');
     }
+
+    // Use provided network or default from config
+    const dappNetwork = targetNetwork || config.defaultNetwork;
 
     try {
       // Request snap connection
@@ -113,38 +112,40 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
         throw new Error('Failed to connect to Hathor Snap');
       }
 
-      // Check current network
-      try {
-        const networkResult = await rpcService.request('htr_getConnectedNetwork');
-        const currentNetwork = (networkResult as any)?.network || networkResult;
-
-        // If not on testnet, request network change
-        if (currentNetwork !== 'testnet') {
-          console.log('Requesting network change to testnet...');
-          await metamask_request('htr_changeNetwork', { network: 'testnet' });
-        }
-      } catch (error) {
-        console.warn('Failed to check or change network:', error);
-        // Continue anyway - the getAddress call will use testnet parameter
-      }
-
-      // Get address from snap using RPC service
-      const addressResult = await rpcService.getAddress({
-        network: 'testnet',
-        type: 'index',
-        index: 0
-      });
+      // Get wallet information from snap (includes network)
+      const walletResult = await rpcService.getWalletInformation();
 
       // MetaMask Snap returns response in nested format
-      const addressData = (addressResult as any)?.response || addressResult;
-      if (!addressData?.address) {
-        throw new Error('Failed to get address from snap');
+      const walletInfo = (walletResult as any)?.response || walletResult;
+      if (!walletInfo?.address0) {
+        throw new Error('Failed to get wallet information from snap');
       }
 
-      setAddress(addressData.address);
+      // Check if wallet's network matches dapp's network
+      const walletNetwork = walletInfo.network;
+      let finalAddress = walletInfo.address0;
+
+      if (walletNetwork !== dappNetwork) {
+        console.log(`Wallet is on ${walletNetwork}, switching to ${dappNetwork}...`);
+        try {
+          await metamask_request('htr_changeNetwork', { network: walletNetwork, newNetwork: dappNetwork });
+          // After network change, get updated wallet info with new address
+          const updatedWalletResult = await rpcService.getWalletInformation();
+          const updatedWalletInfo = (updatedWalletResult as any)?.response || updatedWalletResult;
+          if (updatedWalletInfo?.address0) {
+            finalAddress = updatedWalletInfo.address0;
+            console.log(`Network switched, new address: ${finalAddress}`);
+          }
+        } catch (error) {
+          console.warn('Failed to change network:', error);
+          // Continue anyway - user can manually switch later
+        }
+      }
+
+      setAddress(finalAddress);
       setIsConnected(true);
       localStorage.setItem('wallet_type', 'metamask');
-      localStorage.setItem('address', addressData.address);
+      localStorage.setItem('address', finalAddress);
     } catch (error: any) {
       console.error('Failed to connect to MetaMask Snap:', error);
       throw new Error(error?.message || 'Failed to connect to MetaMask Snap');

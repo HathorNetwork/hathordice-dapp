@@ -14,12 +14,11 @@ interface SlotMachineReelProps {
 
 const FRUITS = [
   '/images/cartoon_pharaoh.png',
-  '/images/cartoon_eye_of_horus.png',
+  '/images/icon.png',
   '/images/cartoon_scarab.png',
-  '/images/ankh.png', // Keeping Ankh as is for now if no cartoon version, or use existing
+  '/images/cartoon_mummy.png',
   '/images/cartoon_anubis.png',
-  '/images/cartoon_pyramid.png',
-  '/images/lotus.png' // Keeping Lotus as is
+  '/images/cartoon_pyramid.png'
 ];
 
 export function SlotMachineReel({
@@ -55,7 +54,7 @@ export function SlotMachineReel({
       // Spin continuously at the specified speed (all in same direction - downward)
       animate(
         scope.current,
-        { y: [0, -(FRUITS.length * FRUIT_HEIGHT), 0] },
+        { y: -(FRUITS.length * FRUIT_HEIGHT) },
         {
           duration: spinSpeed,
           ease: 'linear',

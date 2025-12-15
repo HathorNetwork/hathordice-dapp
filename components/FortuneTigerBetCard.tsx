@@ -8,6 +8,11 @@ import {
   calculatePayout,
   formatTokenAmount,
   multiplierToThreshold,
+  thresholdToWinChance,
+  calculateMaxMultiplier,
+  calculateMinThreshold,
+  clampMultiplierToValidThreshold,
+  MAX_UI_MULTIPLIER,
   FORTUNE_TIGER_MULTIPLIERS,
 } from '@/lib/utils';
 import { toast } from '@/lib/toast';
@@ -19,32 +24,35 @@ import { MegaWin } from './animations/MegaWin';
 import { Jackpot } from './animations/Jackpot';
 import { TryAgain } from './animations/TryAgain';
 import { AlmostThere } from './animations/AlmostThere';
-import { BetterLuck } from './animations/BetterLuck';
+import { LossAnimation } from './animations/LossAnimation';
 import { AnimationSelector, type AnimationType, ANIMATIONS } from './AnimationSelector';
-import { VideoPlayer } from './VideoPlayer';
 import { WalletConnectionModal } from './WalletConnectionModal';
 import { GoddessSpinner } from './GoddessSpinner';
 
 import { GoldButton } from './GoldButton';
 import { GoldFrame } from './GoldFrame';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
 
 interface FortuneTigerBetCardProps {
   selectedToken: string;
 }
 
 export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCardProps) {
-  const { walletBalance, contractBalance, placeBet, connectWallet, balance } = useWallet();
+  const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken, allBets, address } = useHathor();
   const contractBalanceInTokens = Number(contractBalance) / 100;
   const totalBalance = walletBalance + contractBalanceInTokens;
 
-  const [betAmount, setBetAmount] = useState(10);
-  const [selectedMultiplier, setSelectedMultiplier] = useState(2);
+  const [betAmount, setBetAmount] = useState(1);
+  const [selectedMultiplier, setSelectedMultiplier] = useState(1.5);
+  const [showBetInput, setShowBetInput] = useState(false);
+  const [showMultiplierInput, setShowMultiplierInput] = useState(false);
+  const [betInputValue, setBetInputValue] = useState('1');
+  const [multiplierInputValue, setMultiplierInputValue] = useState('1.5');
   const [threshold, setThreshold] = useState(32768);
   const [potentialPayout, setPotentialPayout] = useState(20);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [isIdleSpinning, setIsIdleSpinning] = useState(false);
   const [luckyNumber, setLuckyNumber] = useState(0);
   const [pendingBetTxId, setPendingBetTxId] = useState<string | null>(null);
   const [betResult, setBetResult] = useState<'win' | 'lose' | null>(null);
@@ -53,52 +61,30 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAnimationSelector, setShowAnimationSelector] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [preloadedVideos, setPreloadedVideos] = useState<{ win: string | null; lose: string | null }>({ win: null, lose: null });
-
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIMEOUT = 15000; // 15 seconds of inactivity
-
-  // Video animation lists for preloading
-  const WIN_VIDEO_PATHS = [
-    '/videos/win/b0386440-e311-447f-9ad9-66fcae177139.mp4',
-    '/videos/win/victory-is-yours.mp4',
-  ];
-
-  const LOSE_VIDEO_PATHS = [
-    '/videos/lose/4a51eae1-9047-41d8-8a99-2d03cb543766.mp4',
-    '/videos/lose/51b786d4-3f76-4881-9aa6-95f6f106c4cc.mp4',
-    '/videos/lose/e8029c41-709d-4dd6-85ef-fa15357ce592.mp4',
-    '/videos/lose/fracasso-baiano-1.mp4',
-    '/videos/lose/fracasso-baiano-2.mp4',
-    '/videos/lose/fracasso-baiano-3.mp4',
-  ];
-
-  // Preload videos while spinning
-  const preloadVideos = () => {
-    const randomWinVideo = WIN_VIDEO_PATHS[Math.floor(Math.random() * WIN_VIDEO_PATHS.length)];
-    const randomLoseVideo = LOSE_VIDEO_PATHS[Math.floor(Math.random() * LOSE_VIDEO_PATHS.length)];
-    setPreloadedVideos({ win: randomWinVideo, lose: randomLoseVideo });
-
-    // Fetch videos to cache them
-    [randomWinVideo, randomLoseVideo].forEach(path => {
-      fetch(path).catch(() => {
-        // Silently fail - we just want to cache if possible
-      });
-    });
-  };
+  const [hasAttemptedBalance, setHasAttemptedBalance] = useState(false);
 
   const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
-  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 200;
+  const houseEdgeBasisPoints = contractState?.house_edge_basis_points || 190;
   const maxBetAmount = contractState?.max_bet_amount || 1000000;
+  const contractMaxMultiplierTenths = (contractState as any)?.max_multiplier_tenths;
+
+  // Calculate the maximum allowed multiplier for this contract
+  const maxAllowedMultiplier = calculateMaxMultiplier(randomBitLength, houseEdgeBasisPoints, contractMaxMultiplierTenths);
 
   // Calculate threshold and payout when multiplier or bet amount changes
+  // Use clampMultiplierToValidThreshold to ensure we're within valid bounds
   useEffect(() => {
-    const newThreshold = multiplierToThreshold(selectedMultiplier, randomBitLength, houseEdgeBasisPoints);
-    const payout = calculatePayout(betAmount, newThreshold, randomBitLength, houseEdgeBasisPoints);
-    setThreshold(newThreshold);
+    const { threshold: validThreshold } = clampMultiplierToValidThreshold(
+      selectedMultiplier,
+      randomBitLength,
+      houseEdgeBasisPoints,
+      contractMaxMultiplierTenths
+    );
+    const payout = calculatePayout(betAmount, validThreshold, randomBitLength, houseEdgeBasisPoints);
+    setThreshold(validThreshold);
     setPotentialPayout(payout);
-  }, [betAmount, selectedMultiplier, randomBitLength, houseEdgeBasisPoints]);
+  }, [betAmount, selectedMultiplier, randomBitLength, houseEdgeBasisPoints, contractMaxMultiplierTenths]);
 
   // Watch for bet results
   useEffect(() => {
@@ -112,25 +98,17 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
       setBetResult(bet.result as 'win' | 'lose');
       setPendingBetTxId(null);
 
-      // Randomly select an animation or video based on result
+      // Randomly select an animation based on result
       const winAnimations: AnimationType[] = [
         'winner-chicken-dinner',
         'big-win',
         'mega-win',
         'jackpot',
-        'video-win-1',
-        'video-win-2',
       ];
       const loseAnimations: AnimationType[] = [
         'try-again',
         'almost-there',
         'better-luck',
-        'video-lose-1',
-        'video-lose-2',
-        'video-lose-3',
-        'video-lose-4',
-        'video-lose-5',
-        'video-lose-6',
       ];
 
       let selectedAnimation: AnimationType;
@@ -145,12 +123,20 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
     }
   }, [allBets, pendingBetTxId]);
 
-  // Close auth popup when balance is loaded
+  // Trigger balance request when auth popup shows, and close popup when balance is loaded
   useEffect(() => {
-    if (showAuthPopup && balance > 0n) {
-      setShowAuthPopup(false);
+    if (showAuthPopup) {
+      // Only trigger balance request if it hasn't been attempted yet in this session
+      if (!isLoadingBalance && !hasAttemptedBalance && balance === 0n) {
+        setHasAttemptedBalance(true);
+        refreshBalance();
+      }
+      // Close popup when balance is loaded
+      if (balance > 0n) {
+        setShowAuthPopup(false);
+      }
     }
-  }, [balance, showAuthPopup]);
+  }, [balance, showAuthPopup, isLoadingBalance, hasAttemptedBalance, refreshBalance]);
 
   // Check for debug mode from localStorage
   useEffect(() => {
@@ -167,53 +153,6 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-
-  // Reset idle timer on user activity
-  const resetIdleTimer = () => {
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-    }
-    setIsIdleSpinning(false);
-
-    idleTimerRef.current = setTimeout(() => {
-      // Only start idle spinning if not currently spinning or in other interaction
-      if (!isSpinning && !isPlacingBet && !activeAnimation) {
-        setIsIdleSpinning(true);
-      }
-    }, IDLE_TIMEOUT);
-  };
-
-  // Set up idle timer and user interaction listeners
-  useEffect(() => {
-    resetIdleTimer();
-
-    const handleUserActivity = () => {
-      resetIdleTimer();
-    };
-
-    // Listen for various user interactions
-    window.addEventListener('mousedown', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
-    window.addEventListener('scroll', handleUserActivity);
-    window.addEventListener('touchstart', handleUserActivity);
-
-    return () => {
-      window.removeEventListener('mousedown', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-      window.removeEventListener('scroll', handleUserActivity);
-      window.removeEventListener('touchstart', handleUserActivity);
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-      }
-    };
-  }, [isSpinning, isPlacingBet, activeAnimation]);
-
-  // Stop idle spinning when actual spinning starts
-  useEffect(() => {
-    if (isSpinning || isPlacingBet) {
-      setIsIdleSpinning(false);
-    }
-  }, [isSpinning, isPlacingBet]);
 
   const setQuickAmount = (percentage: number) => {
     const amount = totalBalance * percentage;
@@ -244,9 +183,6 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
     // Simulate wallet confirmation after 2 seconds
     setTimeout(() => {
       setIsPlacingBet(false);
-
-      // Preload videos while spinning
-      preloadVideos();
 
       // Start spinning AFTER wallet confirmation
       setIsSpinning(true);
@@ -323,9 +259,6 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
       const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance);
       setPendingBetTxId(result.response.hash);
 
-      // Preload videos while spinning
-      preloadVideos();
-
       // Start spinning AFTER wallet confirmation
       setIsSpinning(true);
       toast.success('🎰 Transaction confirmed! Spinning...');
@@ -366,14 +299,14 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
               animate={{ opacity: 1, y: 0 }}
               className="text-5xl md:text-6xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-yellow-700 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center justify-center gap-4 tracking-wider"
             >
-              ANUBIS FATE
+              HATHOR DICE
             </motion.h2>
           </div>
 
           {/* Slot Machine Area */}
           <div className="mb-8">
             <SlotMachineAnimation
-              isSpinning={isSpinning || isIdleSpinning}
+              isSpinning={isSpinning}
               finalNumber={luckyNumber}
               result={betResult}
             />
@@ -382,82 +315,231 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
           {/* Controls Container */}
           <div className="flex flex-col items-center gap-6">
 
-            {/* Bet Amounts (Pills) */}
-            <div className="flex items-center gap-4 w-full max-w-2xl justify-center">
-              <button className="text-yellow-500 text-2xl opacity-50 hover:opacity-100">◀</button>
-              <div className="flex gap-3 overflow-x-auto py-2 px-4 no-scrollbar">
-                {[1, 10, 100, 250].map(amount => (
-                  <GoldButton
-                    key={amount}
-                    variant="pill"
-                    isActive={betAmount === amount}
-                    onClick={() => setBetAmount(amount)}
-                    disabled={isPlacingBet || isSpinning}
-                    className="min-w-[100px] py-2 text-lg"
-                  >
-                    {amount} HTR
-                  </GoldButton>
-                ))}
+            {/* Top Row: Selects - aligned with SPIN button width */}
+            <div className="flex items-start gap-6 justify-center w-[424px]">
+              {/* Bet Amount Select */}
+              <div className="relative flex-1">
+                <Select
+                  value={betAmount.toString()}
+                  onValueChange={(value) => {
+                    if (value === 'custom') {
+                      setBetInputValue(betAmount.toString());
+                      setShowBetInput(true);
+                    } else {
+                      const numValue = Number(value);
+                      setBetAmount(numValue);
+                      setBetInputValue(numValue.toString());
+                      setShowBetInput(false);
+                    }
+                  }}
+                  disabled={isPlacingBet || isSpinning}
+                >
+                  <SelectTrigger className="h-[72px] px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
+                    <span className="text-xl text-yellow-400">{betAmount} HTR</span>
+                  </SelectTrigger>
+                  <SelectContent className="border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/40 via-black/80 to-yellow-900/40 backdrop-blur-sm">
+                    {[1, 10, 100, 250].map(amount => (
+                      <SelectItem
+                        key={amount}
+                        value={amount.toString()}
+                        className="text-yellow-400 hover:bg-yellow-500/20 focus:bg-yellow-500/20 cursor-pointer"
+                      >
+                        {amount} HTR
+                      </SelectItem>
+                    ))}
+                    <SelectItem
+                      value="custom"
+                      className="text-yellow-400 hover:bg-yellow-500/20 focus:bg-yellow-500/20 cursor-pointer border-t border-yellow-500/30 mt-1"
+                    >
+                      Custom (max {formatTokenAmount(Number(maxBetAmount))})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {showBetInput && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowBetInput(false)} />
+                    <div className="absolute top-full mt-2 left-0 z-50 min-w-[180px] px-4 py-3 rounded-lg border-2 border-yellow-700/50 bg-black/40 backdrop-blur-sm shadow-xl">
+                      <input
+                        type="number"
+                        value={betInputValue}
+                        onChange={(e) => setBetInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseFloat(betInputValue);
+                            if (!isNaN(val) && val > 0) {
+                              setBetAmount(val);
+                              setShowBetInput(false);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowBetInput(false);
+                          }
+                        }}
+                        className="w-full bg-black/60 text-yellow-400 font-mono outline-none text-sm px-2 py-1 rounded border border-yellow-700/50 focus:border-yellow-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="Enter amount"
+                        autoFocus
+                        min="1"
+                      />
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => {
+                            const val = parseFloat(betInputValue);
+                            if (!isNaN(val) && val > 0) {
+                              setBetAmount(val);
+                              setShowBetInput(false);
+                            }
+                          }}
+                          className="flex-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-xs font-bold text-white rounded transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={() => setShowBetInput(false)}
+                          className="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white rounded transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <button className="text-yellow-500 text-2xl opacity-50 hover:opacity-100">▶</button>
-            </div>
 
-            {/* Multipliers (Rectangles) */}
-            <div className="flex items-center gap-3 justify-center flex-wrap">
-              <button className="text-yellow-500 text-2xl opacity-50 hover:opacity-100">◀</button>
-              {[1.5, 2, 3, 5, 10].map(mult => (
-                <GoldButton
-                  key={mult}
-                  variant="rectangle"
-                  isActive={selectedMultiplier === mult}
-                  onClick={() => setSelectedMultiplier(mult)}
+              {/* Multiplier Select */}
+              <div className="relative flex-1 flex flex-col gap-2">
+                <Select
+                  value={selectedMultiplier.toString()}
+                  onValueChange={(value) => {
+                    if (value === 'custom') {
+                      setMultiplierInputValue(selectedMultiplier.toString());
+                      setShowMultiplierInput(true);
+                    } else {
+                      const numValue = Number(value);
+                      setSelectedMultiplier(numValue);
+                      setMultiplierInputValue(numValue.toString());
+                      setShowMultiplierInput(false);
+                    }
+                  }}
                   disabled={isPlacingBet || isSpinning}
-                  className="w-16 h-12 text-lg"
                 >
-                  {mult}x
-                </GoldButton>
-              ))}
-              <button className="text-yellow-500 text-2xl opacity-50 hover:opacity-100">▶</button>
+                  <SelectTrigger className="h-[72px] px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
+                    <span className="text-xl text-yellow-400">{selectedMultiplier} x</span>
+                  </SelectTrigger>
+                  <SelectContent className="border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/40 via-black/80 to-yellow-900/40 backdrop-blur-sm">
+                    {[1.5, 2, 5, 10].map(mult => (
+                      <SelectItem
+                        key={mult}
+                        value={mult.toString()}
+                        className="text-yellow-400 hover:bg-yellow-500/20 focus:bg-yellow-500/20 cursor-pointer"
+                      >
+                        {mult} x
+                      </SelectItem>
+                    ))}
+                    <SelectItem
+                      value="custom"
+                      className="text-yellow-400 hover:bg-yellow-500/20 focus:bg-yellow-500/20 cursor-pointer border-t border-yellow-500/30 mt-1"
+                    >
+                      Custom (max 100x)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-yellow-400/80 text-sm font-medium">
+                    Win Probability: {thresholdToWinChance(threshold, contractState?.random_bit_length || 16).toFixed(1)}%
+                  </span>
+                  <div className="group relative">
+                    <div className="w-5 h-5 rounded-full bg-yellow-900/40 border border-yellow-700/50 flex items-center justify-center cursor-help">
+                      <span className="text-yellow-400 text-xs font-bold">?</span>
+                    </div>
+                    <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 z-50 w-64 px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-lg shadow-xl">
+                      <p className="text-sm text-slate-300">
+                        Your bet amount will be multiplied by this number if you win. Lower win chance = higher multiplier.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {showMultiplierInput && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMultiplierInput(false)} />
+                    <div className="absolute top-full mt-2 left-0 z-50 min-w-[180px] px-4 py-3 rounded-lg border-2 border-yellow-700/50 bg-black/40 backdrop-blur-sm shadow-xl">
+                      <input
+                        type="number"
+                        value={multiplierInputValue}
+                        onChange={(e) => setMultiplierInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseFloat(multiplierInputValue);
+                            if (!isNaN(val) && val >= 1.5) {
+                              // Clamp to maxAllowedMultiplier
+                              const clampedVal = Math.min(val, maxAllowedMultiplier);
+                              setSelectedMultiplier(clampedVal);
+                              setMultiplierInputValue(clampedVal.toString());
+                              setShowMultiplierInput(false);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowMultiplierInput(false);
+                          }
+                        }}
+                        className="w-full bg-black/60 text-yellow-400 font-mono outline-none text-sm px-2 py-1 rounded border border-yellow-700/50 focus:border-yellow-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder={`1.5 - ${maxAllowedMultiplier}`}
+                        autoFocus
+                        min="1.5"
+                        max={maxAllowedMultiplier}
+                        step="0.1"
+                      />
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => {
+                            const val = parseFloat(multiplierInputValue);
+                            if (!isNaN(val) && val >= 1.5) {
+                              // Clamp to maxAllowedMultiplier
+                              const clampedVal = Math.min(val, maxAllowedMultiplier);
+                              setSelectedMultiplier(clampedVal);
+                              setMultiplierInputValue(clampedVal.toString());
+                              setShowMultiplierInput(false);
+                            }
+                          }}
+                          className="flex-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-xs font-bold text-white rounded transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={() => setShowMultiplierInput(false)}
+                          className="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white rounded transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Spin Button (Large Oval) */}
-            <div className="mt-4">
-              <motion.div
-                animate={isSpinning ? {
-                  scale: [1, 1.05, 1],
-                } : {}}
-                transition={{
-                  duration: 0.8,
-                  repeat: isSpinning ? Infinity : 0,
-                  ease: "easeInOut"
-                }}
+            {/* Spin Button (Large Rounded) */}
+            <div className="mt-2">
+              <button
+                onClick={handleSpin}
+                disabled={isPlacingBet || isSpinning}
+                className="relative w-[424px] h-[120px] text-5xl font-bold tracking-widest rounded-xl bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 shadow-xl border-4 border-yellow-300 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-hidden"
               >
-                <GoldButton
-                  variant="oval"
-                  onClick={handleSpin}
-                  disabled={isPlacingBet || isSpinning}
-                  className="w-64 h-20 text-3xl tracking-widest"
-                >
+                {/* Inner Shine */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+
+                {/* Content */}
+                <div className="relative z-10">
                   {isPlacingBet ? (
-                    <div className="flex items-center gap-2">
-                      <GoddessSpinner size={32} interval={500} />
-                      <span className="text-lg">CONFIRMING...</span>
+                    <div className="flex items-center justify-center gap-2">
+                      <GoddessSpinner size={48} interval={500} />
+                      <span className="text-2xl">CONFIRMING...</span>
                     </div>
                   ) : isSpinning ? (
-                    <span className="text-2xl">SPINNING...</span>
+                    <span className="text-3xl">SPINNING...</span>
                   ) : (
                     'SPIN'
                   )}
-                </GoldButton>
-              </motion.div>
+                </div>
+              </button>
             </div>
-
-            {/* Balance Display (Bottom Pill) */}
-            {isConnected && (
-              <div className="mt-4 px-6 py-2 rounded-full border border-yellow-700/50 bg-black/40 text-yellow-500 font-mono text-sm">
-                BALANCE: {formatTokenAmount(BigInt(Math.floor(totalBalance * 100)))} HTR
-              </div>
-            )}
 
           </div>
         </div>
@@ -511,24 +593,10 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
         />
       )}
       {activeAnimation === 'better-luck' && (
-        <BetterLuck
+        <LossAnimation
           onComplete={() => setActiveAnimation(null)}
         />
       )}
-
-      {/* Video Player for video animations */}
-      {activeAnimation && activeAnimation.startsWith('video-') && betResult && (() => {
-        const animationConfig = ANIMATIONS.find(a => a.id === activeAnimation);
-        return animationConfig?.videoPath ? (
-          <VideoPlayer
-            videoPath={animationConfig.videoPath}
-            result={betResult}
-            payout={potentialPayout}
-            token={selectedToken}
-            onComplete={() => setActiveAnimation(null)}
-          />
-        ) : null;
-      })()}
 
       {/* Authorization Required Popup */}
       {showAuthPopup && (
@@ -536,14 +604,14 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => setShowAuthPopup(false)}
+          onClick={() => { setShowAuthPopup(false); setHasAttemptedBalance(false); }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         >
           <GoldFrame className="max-w-md mx-4" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <div className="bg-[#1a0b2e] p-8 rounded-xl text-center relative">
               {/* Close Button */}
               <button
-                onClick={() => setShowAuthPopup(false)}
+                onClick={() => { setShowAuthPopup(false); setHasAttemptedBalance(false); }}
                 className="absolute top-2 right-2 text-yellow-400 hover:text-yellow-300 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-yellow-400/10 transition-colors"
               >
                 ×

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
-import { formatBalance } from '@/lib/utils';
+import { formatBalanceWithCommas } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 
 interface WithdrawCardProps {
@@ -92,7 +92,7 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
         onClick={onToggle}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/50 transition-colors"
       >
-        <span className="text-white font-medium">🏦 WITHDRAW BALANCE</span>
+        <span className="text-white font-medium">WITHDRAW BALANCE</span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
       </button>
       
@@ -105,7 +105,7 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
             </div>
           ) : claimableError ? (
             <div className="flex items-center justify-center py-8">
-              <span className="text-red-400">❌ {claimableError}</span>
+              <span className="text-red-400">{claimableError}</span>
             </div>
           ) : (
             <>
@@ -113,22 +113,20 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300 text-sm font-medium">Available Balance:</span>
                   <span className="text-green-400 font-bold text-lg">
-                    {formatBalance(claimableBalance)} {selectedToken}
+                    {formatBalanceWithCommas(claimableBalance)} {selectedToken}
                   </span>
                 </div>
               </div>
 
               {claimableBalance === 0n && (
-                <div className="flex items-center gap-2 text-sm text-amber-400 bg-amber-900/20 border border-amber-700 rounded-lg p-3">
-                  <span>ℹ️</span>
-                  <span>No balance available to withdraw</span>
+                <div className="text-sm text-amber-400 bg-amber-900/20 border border-amber-700 rounded-lg p-3">
+                  No balance available to withdraw
                 </div>
               )}
 
               {claimableBalance > 0n && (
-                <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-700/30 border border-slate-600 rounded-lg p-3">
-                  <span>ℹ️</span>
-                  <span>This balance can be used for betting without deposits</span>
+                <div className="text-sm text-slate-400 bg-slate-700/30 border border-slate-600 rounded-lg p-3">
+                  This balance can be used for betting without deposits
                 </div>
               )}
 
@@ -137,7 +135,7 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
                 disabled={!isConnected || isWithdrawing || claimableBalance === 0n}
                 className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
               >
-                {isWithdrawing ? '⏳ Withdrawing...' : '💸 Withdraw to Wallet'}
+                {isWithdrawing ? 'Withdrawing...' : 'Withdraw to Wallet'}
               </button>
             </>
           )}

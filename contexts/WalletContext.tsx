@@ -12,6 +12,8 @@ interface WalletContextType {
   balance: bigint;
   walletBalance: number;
   contractBalance: bigint;
+  balanceVerified: boolean;
+  isLoadingBalance: boolean;
   setContractBalance: (balance: bigint) => void;
   connectWallet: () => void;
   disconnectWallet: () => void;
@@ -40,6 +42,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<bigint>(0n);
   const [contractBalance, setContractBalance] = useState<bigint>(0n);
+  const [balanceVerified, setBalanceVerified] = useState(false);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [rpcService] = useState(() => new HathorRPCService(config.useMockWallet));
 
   // Load cached balance from localStorage
@@ -81,53 +85,66 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const fetchBalance = async (addr: string, forceRefresh: boolean = false) => {
     if (!addr) return;
 
-    // Check cache first unless forced refresh
-    if (!forceRefresh) {
-      const cachedBalance = loadCachedBalance(addr);
-      if (cachedBalance !== null) {
-        console.log('Using cached balance');
-        setBalance(cachedBalance);
-        return;
-      }
-    }
-
+    // Don't use cache - always fetch fresh balance to ensure authorization
     if (config.useMockWallet) {
       setBalance(100000n);
+      setBalanceVerified(true);
       saveCachedBalance(addr, 100000n);
       return;
     }
 
+    setIsLoadingBalance(true);
     try {
       const balanceInfo = await rpcService.getBalance({
         network: 'testnet',
         tokens: ['00'],
       });
-      const balance = balanceInfo.response[0]?.balance?.unlocked || 0n;
-      setBalance(balance);
-      saveCachedBalance(addr, balance);
+
+      console.log('Balance response:', balanceInfo);
+
+      // Handle both direct response and nested response format (MetaMask Snap wraps response)
+      const responseData = (balanceInfo as any)?.response?.response || balanceInfo?.response;
+      const balanceData = responseData?.[0]?.balance?.unlocked;
+
+      // Convert to bigint - value is already in cents from API
+      const balanceValue = typeof balanceData === 'number'
+        ? BigInt(Math.floor(balanceData))
+        : (typeof balanceData === 'bigint' ? balanceData : 0n);
+
+      console.log('Parsed balance:', balanceValue.toString());
+
+      setBalance(balanceValue);
+      setBalanceVerified(true);
+      saveCachedBalance(addr, balanceValue);
     } catch (error: any) {
-      console.log('Balance fetch was rejected or failed. This is normal if the wallet requires manual approval.');
+      console.log('Balance fetch was rejected or failed:', error);
       setBalance(0n);
+      setBalanceVerified(false);
+    } finally {
+      setIsLoadingBalance(false);
     }
   };
 
-  // Update rpcService based on active wallet adapter
+  // Update rpcService and fetch balance when wallet connects
   useEffect(() => {
-    if (adapter?.isConnected) {
-      rpcService.updateClientAndSession(undefined, undefined, adapter.request);
-    }
-  }, [adapter, rpcService]);
+    console.log('WalletContext useEffect - adapter state:', {
+      isConnected: adapter?.isConnected,
+      address: adapter?.address,
+      hasRequest: !!adapter?.request,
+    });
 
-  // Auto-fetch balance when wallet connects
-  useEffect(() => {
     if (adapter?.isConnected && adapter.address) {
+      // First update rpcService with adapter's request function
+      console.log('Updating rpcService with adapter.request');
+      rpcService.updateClientAndSession(undefined, undefined, adapter.request);
+      // Then fetch balance
       setAddress(adapter.address);
       fetchBalance(adapter.address);
     } else if (!adapter?.isConnected) {
       setAddress(null);
       setBalance(0n);
     }
-  }, [adapter?.isConnected, adapter?.address]);
+  }, [adapter?.isConnected, adapter?.address, adapter?.request, rpcService]);
 
   // Convert balance from cents (bigint) to token units (number) for backwards compatibility
   const walletBalance = typeof balance === 'bigint' ? Number(balance) / 100 : 0;
@@ -144,6 +161,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(null);
     setBalance(0n);
     setContractBalance(0n);
+    setBalanceVerified(false);
+    setIsLoadingBalance(false);
   };
 
   const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, currentContractBalance: bigint) => {
@@ -341,6 +360,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       balance,
       walletBalance,
       contractBalance,
+      balanceVerified,
+      isLoadingBalance,
       setContractBalance,
       connectWallet,
       disconnectWallet,

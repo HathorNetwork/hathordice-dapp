@@ -103,7 +103,7 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/50 transition-colors"
       >
         <span className="text-white font-medium flex items-center gap-2">
-          💸 REMOVE LIQUIDITY
+          REMOVE LIQUIDITY
           <HelpIcon text="Withdraw your liquidity from the pool. The maximum removable amount is calculated to ensure the pool can pay out active bets. You cannot remove more than this amount." />
         </span>
         <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
@@ -111,13 +111,7 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
       
       {isExpanded && (
         <div className="p-6 border-t border-slate-700 space-y-4">
-          {isLoadingMax ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="ml-3 text-slate-400">Loading maximum liquidity...</span>
-            </div>
-          ) : (
-            <>
+          <>
               <div>
                 <label className="block text-sm text-slate-400 mb-2">Amount</label>
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
@@ -133,7 +127,7 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
                   />
                   <span className="text-slate-400">{selectedToken}</span>
                 </div>
-                <div className="flex gap-2 mt-2">
+                <div className="flex justify-between items-center mt-2">
                   <button
                     onClick={setMaxAmount}
                     disabled={!isConnected || availableLiquidity === 0}
@@ -141,28 +135,27 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
                   >
                     MAX
                   </button>
-                </div>
-                <div className="text-sm text-slate-400 mt-2">
-                  Available: {formatTokenAmount(Number(maxLiquidity))} {selectedToken}
+                  <div className="text-sm text-slate-400">
+                    Available: {formatTokenAmount(Number(maxLiquidity))} {selectedToken}
+                  </div>
                 </div>
               </div>
 
               {availableLiquidity === 0 && isConnected && (
-                <div className="flex items-center gap-2 text-sm text-amber-400 bg-amber-900/20 border border-amber-700 rounded-lg p-3">
-                  <span>ℹ️</span>
-                  <span>No liquidity available to remove</span>
+                <div className="text-sm text-amber-400 bg-amber-900/20 border border-amber-700 rounded-lg p-3">
+                  No liquidity available to remove
                 </div>
               )}
 
               <button
                 onClick={handleRemoveLiquidity}
                 disabled={!isConnected || isRemovingLiquidity || amount <= 0 || availableLiquidity === 0}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                className="w-full py-3 disabled:bg-slate-600 disabled:cursor-not-allowed font-medium rounded-lg transition-colors hover:opacity-90"
+                style={!isConnected || isRemovingLiquidity || amount <= 0 || availableLiquidity === 0 ? { color: 'white' } : { background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}
               >
-                {isRemovingLiquidity ? '⏳ Removing Liquidity...' : '💸 Remove Liquidity'}
+                {isRemovingLiquidity ? 'Removing Liquidity...' : 'Remove Liquidity'}
               </button>
             </>
-          )}
         </div>
       )}
     </div>

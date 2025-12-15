@@ -97,7 +97,8 @@ export function BetterLuck({ onComplete }: BetterLuckProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-green-900/70 to-blue-900/70 backdrop-blur-sm"
+      onClick={onComplete}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-green-900/70 to-blue-900/70 backdrop-blur-sm cursor-pointer"
     >
       {/* Floating Clovers */}
       {clovers.map((clover) => (

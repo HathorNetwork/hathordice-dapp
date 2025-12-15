@@ -73,6 +73,10 @@ export class HathorRPCService {
     return this.request('htr_getAddress', params);
   }
 
+  async getWalletInformation(): Promise<{ address0: string; network: string }> {
+    return this.request('htr_getWalletInformation');
+  }
+
   async sendNanoContractTx(params: SendNanoContractTxParams): Promise<any> {
     return this.request('htr_sendNanoContractTx', params);
   }
@@ -97,6 +101,9 @@ export class HathorRPCService {
 
       case 'htr_getAddress':
         return { address: 'WYBwT3xLpDnHNtYZiU52oanupVeDKhAvNp', index: 0, addressPath: "m/44'/280'/0'/0/0" } as T;
+
+      case 'htr_getWalletInformation':
+        return { address0: 'WYBwT3xLpDnHNtYZiU52oanupVeDKhAvNp', network: 'testnet' } as T;
 
       case 'htr_sendNanoContractTx':
         return {

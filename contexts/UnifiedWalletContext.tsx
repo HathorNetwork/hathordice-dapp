@@ -49,6 +49,7 @@ export function UnifiedWalletProvider({ children }: { children: ReactNode }) {
         request: metaMask.request,
       };
     } else if (walletType === 'walletconnect' && walletConnect.isConnected) {
+      const connectedNetwork = walletConnect.getConnectedNetwork() || 'testnet';
       return {
         isConnected: walletConnect.isConnected,
         isInitializing: walletConnect.isInitializing,
@@ -60,7 +61,7 @@ export function UnifiedWalletProvider({ children }: { children: ReactNode }) {
             throw new Error('WalletConnect not connected');
           }
           return walletConnect.client.request<T>({
-            chainId: 'hathor:testnet',
+            chainId: `hathor:${connectedNetwork}`,
             topic: walletConnect.session.topic,
             request: { method, params },
           });

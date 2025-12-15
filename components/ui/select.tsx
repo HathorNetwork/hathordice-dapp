@@ -46,13 +46,13 @@ const SelectTrigger = React.forwardRef<
       onClick={() => !context.disabled && context.setOpen(!context.open)}
       disabled={context.disabled}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "relative flex h-10 w-full items-center rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}
     >
       {children}
-      <span className="ml-2">▼</span>
+      <span className="absolute right-3 text-[10px] opacity-60">▼</span>
     </button>
   )
 })
@@ -92,10 +92,11 @@ const SelectContent = ({ children, className }: { children: React.ReactNode; cla
 interface SelectItemProps {
   value: string
   disabled?: boolean
+  className?: string
   children: React.ReactNode
 }
 
-const SelectItem = ({ value, disabled, children }: SelectItemProps) => {
+const SelectItem = ({ value, disabled, className, children }: SelectItemProps) => {
   const context = React.useContext(SelectContext)
   if (!context) throw new Error('SelectItem must be used within Select')
 
@@ -112,7 +113,8 @@ const SelectItem = ({ value, disabled, children }: SelectItemProps) => {
       className={cn(
         "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 px-3 text-sm text-white outline-none hover:bg-slate-700",
         disabled && "cursor-not-allowed opacity-50",
-        context.value === value && "bg-slate-700"
+        context.value === value && "bg-slate-700",
+        className
       )}
     >
       {children}

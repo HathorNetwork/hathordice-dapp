@@ -107,7 +107,8 @@ export function Jackpot({ payout, token, onComplete }: JackpotProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-red-900"
+      onClick={onComplete}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 cursor-pointer"
     >
       {/* Twinkling Stars */}
       {stars.map((star) => (

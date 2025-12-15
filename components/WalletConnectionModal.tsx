@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { useWalletConnect } from '@/contexts/WalletConnectContext';
 import { useMetaMask } from '@/contexts/MetaMaskContext';
+import { useHathor } from '@/contexts/HathorContext';
 import { useState, useEffect } from 'react';
 
 interface WalletConnectionModalProps {
@@ -14,6 +15,7 @@ interface WalletConnectionModalProps {
 export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionModalProps) {
   const { connect: connectWalletConnect, isInitializing } = useWalletConnect();
   const { connect: connectMetaMask, isInstalled: isMetaMaskInstalled } = useMetaMask();
+  const { network } = useHathor();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState<'reown' | 'metamask' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
       setIsConnecting(true);
       setConnectingWallet('reown');
       setError(null);
-      await connectWalletConnect();
+      await connectWalletConnect(network);
       onOpenChange(false);
     } catch (error: any) {
       console.error('Failed to connect via Reown:', error);
@@ -39,6 +41,8 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
         setError('Wallet is initializing. Please wait a moment and try again.');
       } else if (error?.message?.includes('User closed the modal')) {
         setError(null); // User intentionally closed, don't show error
+      } else if (error?.message?.includes('Network mismatch')) {
+        setError(error.message); // Show the full network mismatch error
       } else {
         setError('Failed to connect. Please try again.');
       }
@@ -58,7 +62,7 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
       setIsConnecting(true);
       setConnectingWallet('metamask');
       setError(null);
-      await connectMetaMask();
+      await connectMetaMask(network);
       onOpenChange(false);
     } catch (error: any) {
       console.error('Failed to connect via MetaMask:', error);
@@ -104,7 +108,6 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
             variant="outline"
             disabled={isReownButtonDisabled}
           >
-            <span className="text-xl">👛</span>
             {connectingWallet === 'reown' ? 'Connecting...' : isInitializing ? 'Initializing...' : 'Connect via Reown'}
           </Button>
           <Button
@@ -113,7 +116,6 @@ export function WalletConnectionModal({ open, onOpenChange }: WalletConnectionMo
             variant="outline"
             disabled={isMetaMaskButtonDisabled}
           >
-            <span className="text-xl">🦊</span>
             {connectingWallet === 'metamask' ? 'Connecting...' : !isMetaMaskInstalled ? 'Install MetaMask First' : 'Connect via MetaMask Snaps'}
           </Button>
         </div>

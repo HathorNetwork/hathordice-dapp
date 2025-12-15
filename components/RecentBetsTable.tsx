@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Bet } from '@/types';
-import { formatNumber, formatAddress } from '@/lib/utils';
+import { formatBalanceWithCommas, formatAddress } from '@/lib/utils';
 import { useHathor } from '@/contexts/HathorContext';
 import HelpIcon from '@/components/HelpIcon';
 import BetResultNotification from '@/components/BetResultNotification';
@@ -49,16 +49,16 @@ export default function RecentBetsTable() {
     switch (bet.result) {
       case 'pending':
         return (
-          <span className="text-yellow-400 flex items-center gap-1">
-            <span className="animate-pulse">⏳</span> Waiting for confirmation
+          <span className="text-yellow-400">
+            Waiting for confirmation
           </span>
         );
       case 'failed':
-        return <span className="text-orange-400">⚠️ Failed</span>;
+        return <span className="text-orange-400">Failed</span>;
       case 'win':
-        return <span className="text-green-400">✅ WIN</span>;
+        return <span className="text-green-400">WIN</span>;
       case 'lose':
-        return <span className="text-red-400">❌ LOSE</span>;
+        return <span className="text-red-400">LOSE</span>;
     }
   };
 
@@ -66,7 +66,7 @@ export default function RecentBetsTable() {
     if (bet.result === 'pending' && bet.potentialPayout) {
       return (
         <span className="text-yellow-400">
-          ~{formatNumber(bet.potentialPayout)} {bet.token}
+          ~{formatBalanceWithCommas(bet.potentialPayout)} {bet.token}
         </span>
       );
     }
@@ -75,65 +75,48 @@ export default function RecentBetsTable() {
     }
     return (
       <span className={bet.result === 'win' ? 'text-green-400' : 'text-red-400'}>
-        {formatNumber(bet.payout)} {bet.token}
+        {formatBalanceWithCommas(bet.payout)} {bet.token}
       </span>
     );
   };
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            📊 RECENT BETS
-          </h2>
-          {lastHistoryUpdate && (
-            <p className="text-xs text-slate-400 mt-1">
-              Last updated at {formatLastUpdated()}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={refreshHistory}
-          disabled={isLoadingHistory}
-          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center gap-2"
-        >
-          <span className={isLoadingHistory ? 'animate-spin' : ''}>🔄</span>
-          Refresh
-        </button>
+    <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-white">
+          RECENT BETS
+        </h2>
+        {lastHistoryUpdate && (
+          <p className="text-xs text-slate-400 mt-1">
+            Last updated at {formatLastUpdated()}
+          </p>
+        )}
       </div>
 
       <div className="overflow-x-auto">
         {isLoadingHistory && allBets.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
             <p className="text-slate-400">Loading recent bets...</p>
           </div>
         ) : allBets.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="text-4xl mb-4">🎲</div>
             <p className="text-slate-400">No bets yet. Place a bet to get started!</p>
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-slate-900">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Player</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Bet</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Threshold</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
-                  <span className="flex items-center gap-1">
-                    Lucky Number
-                    <HelpIcon text="A random number generated for each bet. You win if this number is less than or equal to your threshold. The generation is provably fair and verifiable on-chain." />
-                  </span>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Result</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Payout</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">TX ID</th>
+            <thead>
+              <tr className="border-b border-slate-700">
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Player</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Bet</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Threshold</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Lucky Number</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Result</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">Payout</th>
+                <th className="px-4 text-left text-sm font-medium text-slate-400 pb-3">TX ID</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {allBets.map((bet) => (
+              {allBets.slice(0, 20).map((bet) => (
                 <tr
                   key={bet.id}
                   className={`hover:bg-slate-700/50 transition-colors ${
@@ -158,7 +141,7 @@ export default function RecentBetsTable() {
                     ) : bet.result === 'pending' ? (
                       <span className="text-slate-600">-</span>
                     ) : (
-                      `${formatNumber(bet.amount)} ${bet.token}`
+                      `${formatBalanceWithCommas(bet.amount)} ${bet.token}`
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-300">

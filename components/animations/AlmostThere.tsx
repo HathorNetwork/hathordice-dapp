@@ -88,7 +88,8 @@ export function AlmostThere({ onComplete }: AlmostThereProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-orange-900/80 to-red-900/80 backdrop-blur-sm"
+      onClick={onComplete}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-orange-900/80 to-red-900/80 backdrop-blur-sm cursor-pointer"
     >
       <motion.div
         initial={{ scale: 0.3 }}

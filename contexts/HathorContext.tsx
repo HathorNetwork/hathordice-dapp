@@ -278,7 +278,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
               // Transaction is likely pending and doesn't have decoded args yet
               hasPendingArgs = true;
             } else {
-              amount = tx.nc_args_decoded[0] / 100; // First argument is bet amount in cents
+              amount = tx.nc_args_decoded[0]; // First argument is bet amount in cents
               threshold = tx.nc_args_decoded[1]; // Second argument is threshold
             }
 
@@ -296,7 +296,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
                 const eventData = JSON.parse(eventStr);
 
                 luckyNumber = eventData.lucky_number;
-                payout = eventData.payout ? eventData.payout / 100 : 0;
+                payout = eventData.payout ? eventData.payout : 0;
               } catch (error) {
                 console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
               }
@@ -381,7 +381,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
                 continue;
               }
 
-              const amount = tx.nc_args_decoded[0] / 100;
+              const amount = tx.nc_args_decoded[0];
               let payout = 0;
 
               // Parse nc_events for payout
@@ -391,7 +391,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
                   const bytes = new Uint8Array(hexString.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
                   const eventStr = new TextDecoder().decode(bytes);
                   const eventData = JSON.parse(eventStr);
-                  payout = eventData.payout ? eventData.payout / 100 : 0;
+                  payout = eventData.payout ? eventData.payout : 0;
                 } catch (error) {
                   console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
                 }
@@ -457,7 +457,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
               continue;
             }
 
-            const amount = tx.nc_args_decoded[0] / 100;
+            const amount = tx.nc_args_decoded[0];
             let payout = 0;
             let luckyNumber: number | undefined;
 
@@ -469,7 +469,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
                 const eventStr = new TextDecoder().decode(bytes);
                 const eventData = JSON.parse(eventStr);
                 luckyNumber = eventData.lucky_number;
-                payout = eventData.payout ? eventData.payout / 100 : 0;
+                payout = eventData.payout ? eventData.payout : 0;
               } catch (error) {
                 console.warn(`Failed to parse nc_events for transaction ${tx.tx_id}:`, error);
               }

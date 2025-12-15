@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
+import { useUnifiedWallet } from '@/contexts/UnifiedWalletContext';
 import Header from '@/components/Header';
 import BalanceCard from '@/components/BalanceCard';
 import RecentBetsTable from '@/components/RecentBetsTable';
@@ -17,13 +18,16 @@ import { ContractInfoCompact } from '@/components/ContractInfoCompact';
 import { NetworkSelector } from '@/components/NetworkSelector';
 import { UIModeSwitcher, type UIMode } from '@/components/UIModeSwitcher';
 import HelpIcon from '@/components/HelpIcon';
-import { formatBalance } from '@/lib/utils';
+import { WalletConnectionModal } from '@/components/WalletConnectionModal';
+import { IntroVideo } from '@/components/IntroVideo';
+import { formatBalance, formatBalanceWithCommas, formatAddress } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { APP_VERSION } from '@/lib/version';
 
 export default function Home() {
-  const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance } = useWallet();
-  const { network, getContractStateForToken, getContractIdForToken, switchNetwork, isConnected, coreAPI } = useHathor();
+  const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance, balanceVerified, isLoadingBalance } = useWallet();
+  const { network, getContractStateForToken, getContractIdForToken, switchNetwork, isConnected, coreAPI, disconnectWallet } = useHathor();
+  const { walletType } = useUnifiedWallet();
   const [selectedToken, setSelectedToken] = useState('HTR');
   const [expandedCard, setExpandedCard] = useState<string | null>('placeBet');
   const [isLoadingClaimable, setIsLoadingClaimable] = useState(false);
@@ -33,7 +37,10 @@ export default function Home() {
   const [isRefreshingContract, setIsRefreshingContract] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [uiMode, setUIMode] = useState<UIMode>('classic');
+  const [uiMode, setUIMode] = useState<UIMode>('fortune-tiger');
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showDisconnectMenu, setShowDisconnectMenu] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   // Load UI mode preference from localStorage
   useEffect(() => {
@@ -178,10 +185,76 @@ export default function Home() {
 
   // If in Fortune Tiger mode, render full-screen slot machine
   if (uiMode === 'fortune-tiger') {
+    const totalBalance = BigInt(balance) + BigInt(contractBalance);
+    const formattedBalance = isConnected && balanceVerified && totalBalance > 0n
+      ? `${formatBalanceWithCommas(totalBalance)} ${selectedToken}`
+      : undefined;
+
     return (
       <div className="relative">
+        {/* Intro Video */}
+        {showIntro && (
+          <IntroVideo onComplete={() => setShowIntro(false)} />
+        )}
+        {/* Wallet Controls - Top Right */}
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-3">
+          <NetworkSelector
+            value={network}
+            onChange={switchNetwork}
+            disabled={isConnected}
+          />
+          {isConnected ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowDisconnectMenu(!showDisconnectMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors"
+              >
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
+              </button>
+              {showDisconnectMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDisconnectMenu(false)} />
+                  <div className="absolute top-full mt-2 right-0 z-50">
+                    <button
+                      onClick={() => {
+                        disconnectWallet();
+                        setShowDisconnectMenu(false);
+                      }}
+                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowWalletModal(true)}
+              className="px-6 py-2 rounded-lg font-bold bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 hover:brightness-110 transition-all"
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
+
         <FortuneTigerBetCard selectedToken={selectedToken} />
-        <UIModeSwitcher currentMode={uiMode} onModeChange={handleModeChange} />
+        <UIModeSwitcher
+          currentMode={uiMode}
+          onModeChange={handleModeChange}
+          balance={formattedBalance}
+          onGetBalance={refreshBalance}
+          isConnected={isConnected}
+          isLoadingBalance={isLoadingBalance}
+          walletType={walletType}
+        />
+
+        {/* Wallet Connection Modal */}
+        <WalletConnectionModal
+          open={showWalletModal}
+          onOpenChange={setShowWalletModal}
+        />
       </div>
     );
   }
@@ -191,11 +264,6 @@ export default function Home() {
       <Header />
 
       <main className="container mx-auto px-6 py-8">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">HathorDice DApp</h1>
-          <NetworkSelector value={network} onChange={switchNetwork} disabled={isConnected} />
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {connected && <BalanceCard selectedToken={selectedToken} />}
@@ -208,7 +276,7 @@ export default function Home() {
             {/* Place Bet - Right Panel */}
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">🎲 PLACE BET</h2>
+                <h2 className="text-lg font-bold text-white">PLACE BET</h2>
                 <TokenSelector selectedToken={selectedToken} onTokenChange={setSelectedToken} />
               </div>
 
@@ -219,68 +287,55 @@ export default function Home() {
                       Wallet Balance:
                       <HelpIcon text="Your wallet's token balance. This is stored in your personal wallet and can be used for betting or adding liquidity." />
                     </span>
-                    <div className="flex items-center gap-2">
+                    {balanceVerified && balance > 0n ? (
                       <span className="text-white font-bold">
-                        {balance > 0n ? (
-                          `${formatBalance(balance)} ${selectedToken}`
-                        ) : (
-                          <span className="text-slate-400 text-xs">Authorize to view balance</span>
-                        )}
+                        {formatBalanceWithCommas(balance)} {selectedToken}
                       </span>
+                    ) : isLoadingBalance ? (
+                      <span className="text-slate-400 text-xs">Authorize to view balance</span>
+                    ) : isConnected ? (
                       <button
-                        onClick={handleRefreshWalletBalance}
-                        disabled={isRefreshingWallet}
-                        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-                        title="Refresh wallet balance"
+                        onClick={() => {
+                          // Only show confirmation toast for WalletConnect (not MetaMask Snap)
+                          if (walletType !== 'metamask') {
+                            toast.info('⏳ Please confirm the operation in your wallet...');
+                          }
+                          refreshBalance();
+                        }}
+                        className="px-3 py-1 font-medium rounded transition-colors hover:opacity-90"
+                        style={{ background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}
                       >
-                        {isRefreshingWallet ? '⏳' : '🔄'}
+                        Load Balance
                       </button>
-                    </div>
+                    ) : (
+                      <span className="text-slate-400 text-xs">Connect wallet first</span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between border-t border-slate-600 pt-3">
-                    <span className="text-slate-300 text-sm font-medium flex items-center gap-1">
-                      Contract Balance:
-                      <HelpIcon text="Your claimable balance held in the contract from previous bet winnings. Can be used for betting, or withdrawn to your wallet." />
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {isLoadingClaimable || isRefreshingContract ? (
-                        <span className="text-slate-400 text-xs">Loading...</span>
-                      ) : claimableError ? (
-                        <>
-                          <span className="text-red-400 text-xs">❌ {claimableError}</span>
-                          <button
-                            onClick={handleRefreshContractBalance}
-                            className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium rounded transition-colors"
-                            title="Refresh contract balance"
-                          >
-                            🔄
-                          </button>
-                        </>
-                      ) : (
-                        <>
+                  <div className="border-t border-slate-600 pt-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-slate-300 text-sm font-medium flex items-center gap-1">
+                        Contract Balance:
+                        <HelpIcon text="Your claimable balance held in the contract from previous bet winnings. Can be used for betting, or withdrawn to your wallet." />
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {claimableError ? (
+                          <span className="text-red-400 text-xs">{claimableError}</span>
+                        ) : (
                           <span className="text-green-400 font-bold">
-                            {formatBalance(contractBalance)} {selectedToken}
+                            {formatBalanceWithCommas(contractBalance)} {selectedToken}
                           </span>
-                          <button
-                            onClick={handleRefreshContractBalance}
-                            disabled={isRefreshingContract}
-                            className="px-2 py-1 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-                            title="Refresh contract balance"
-                          >
-                            🔄
-                          </button>
-                          {contractBalance > 0n && (
-                            <button
-                              onClick={handleWithdrawClick}
-                              disabled={isClaiming}
-                              className="px-2 py-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
-                            >
-                              💸 Withdraw
-                            </button>
-                          )}
-                        </>
-                      )}
+                        )}
+                      </div>
                     </div>
+                    {contractBalance > 0n && !claimableError && (
+                      <button
+                        onClick={handleWithdrawClick}
+                        disabled={isClaiming}
+                        className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded transition-colors"
+                      >
+                        Withdraw
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -294,7 +349,7 @@ export default function Home() {
 
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">📊 INFO & LIQUIDITY</h2>
+                <h2 className="text-lg font-bold text-white">INFO & LIQUIDITY</h2>
               </div>
 
               <ContractInfoCompact contractState={contractState} token={selectedToken} />
@@ -312,10 +367,6 @@ export default function Home() {
                 />
               </div>
             </div>
-
-            <footer className="text-center text-sm text-slate-400 py-4 border-t border-slate-700">
-              Built on Hathor Network • Powered by Nano Contracts
-            </footer>
           </div>
         </div>
       </main>
@@ -382,8 +433,9 @@ export default function Home() {
       )}
 
       {/* Version Footer */}
-      <footer className="mt-8 text-center text-slate-500 text-sm">
-        <p>HathorDice {APP_VERSION}</p>
+      <footer className="mt-8 text-center text-sm pb-6">
+        <p className="text-slate-400 mb-2">Built on Hathor Network • Powered by Nano Contracts</p>
+        <p className="text-slate-500">HathorDice {APP_VERSION}</p>
       </footer>
 
       {/* UI Mode Switcher - Only show in classic mode */}

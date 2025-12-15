@@ -10,6 +10,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Hathor Dice - Provably Fair Betting',
   description: 'Decentralized dice game on Hathor Network',
+  icons: {
+    icon: '/images/icon.png',
+  },
 };
 
 export default function RootLayout({

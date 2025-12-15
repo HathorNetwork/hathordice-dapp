@@ -1,7 +1,7 @@
 'use client';
 
 import { ContractState } from '@/types/hathor';
-import { formatTokenAmount, formatNumber } from '@/lib/utils';
+import { formatBalanceWithCommas, formatNumber } from '@/lib/utils';
 import HelpIcon from '@/components/HelpIcon';
 
 interface ContractInfoCompactProps {
@@ -10,24 +10,11 @@ interface ContractInfoCompactProps {
 }
 
 export function ContractInfoCompact({ contractState, token }: ContractInfoCompactProps) {
-  if (!contractState) {
-    return (
-      <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">ℹ️</span>
-          <h3 className="text-sm font-semibold text-white">Contract Information</h3>
-        </div>
-        <p className="text-xs text-slate-400">No contract data available for {token}</p>
-      </div>
-    );
-  }
-
-  const houseEdgePercent = contractState.house_edge_basis_points / 100;
+  const houseEdgePercent = contractState ? contractState.house_edge_basis_points / 100 : 0;
 
   return (
     <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-lg">ℹ️</span>
+      <div className="mb-3">
         <h3 className="text-sm font-semibold text-white">Contract Information ({token})</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 text-xs">
@@ -43,18 +30,18 @@ export function ContractInfoCompact({ contractState, token }: ContractInfoCompac
             Max Bet
             <HelpIcon text="The maximum amount you can bet in a single transaction. This is set to ensure the pool has enough liquidity to pay out potential winnings." />
           </div>
-          <p className="font-semibold text-white">{formatTokenAmount(contractState.max_bet_amount)} {token}</p>
+          <p className="font-semibold text-white">{formatBalanceWithCommas(contractState?.max_bet_amount || 0)} {token}</p>
         </div>
         <div>
           <p className="text-slate-400">Liquidity</p>
-          <p className="font-semibold text-white">{formatTokenAmount(contractState.available_tokens)} {token}</p>
+          <p className="font-semibold text-white">{formatBalanceWithCommas(contractState?.available_tokens || 0)} {token}</p>
         </div>
         <div>
           <div className="text-slate-400 flex items-center gap-1">
             Random Bits
             <HelpIcon text="The number of random bits used to generate the lucky number. 16 bits means numbers from 0 to 65,535. More bits = wider range of possible outcomes." />
           </div>
-          <p className="font-semibold text-white">{contractState.random_bit_length}</p>
+          <p className="font-semibold text-white">{contractState?.random_bit_length || 16}</p>
         </div>
       </div>
     </div>

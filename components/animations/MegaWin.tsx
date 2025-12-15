@@ -108,7 +108,8 @@ export function MegaWin({ payout, token, onComplete }: MegaWinProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onComplete}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm cursor-pointer"
     >
       {/* Firework Bursts */}
       {fireworks.map((fw) => (

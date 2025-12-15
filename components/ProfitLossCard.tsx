@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useHathor } from '@/contexts/HathorContext';
+import { formatBalanceWithCommas } from '@/lib/utils';
 
 export default function ProfitLossCard() {
   const { allBets, address, isLoadingHistory } = useHathor();
@@ -48,7 +49,7 @@ export default function ProfitLossCard() {
   // Creative title based on state
   const getTitle = () => {
     if (!address) return "Connect to Track Stats";
-    if (totalBets === 0) return "You gotta play to profit! 🎲";
+    if (totalBets === 0) return "You gotta play to profit!";
     if (totalBets === 1) return `Your First Bet Result`;
     return `Profit/Loss after ${totalBets} bets`;
   };
@@ -59,17 +60,14 @@ export default function ProfitLossCard() {
 
       {!address ? (
         <div className="text-center py-8">
-          <div className="text-4xl mb-4">🔒</div>
           <p className="text-slate-400">Connect your wallet to view your stats</p>
         </div>
       ) : isLoadingHistory && totalBets === 0 ? (
         <div className="text-center py-8">
-          <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
           <p className="text-slate-400">Loading your stats...</p>
         </div>
       ) : totalBets === 0 ? (
         <div className="text-center py-8">
-          <div className="text-4xl mb-4">🎰</div>
           <p className="text-slate-400 mb-2">No bets yet!</p>
           <p className="text-slate-500 text-sm">Place your first bet to start tracking your profit!</p>
         </div>
@@ -84,11 +82,10 @@ export default function ProfitLossCard() {
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className={`text-2xl font-bold flex items-center gap-2 ${
+                <div className={`text-2xl font-bold ${
                   isProfit ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {isProfit ? '📈' : '📉'}
-                  {isProfit ? '+' : ''}{profitLoss.toFixed(2)} HTR
+                  {isProfit ? '+' : ''}{formatBalanceWithCommas(profitLoss)} HTR
                 </div>
                 <div className="text-slate-400 text-xs mt-1">
                   {winCount}W / {loseCount}L • {winRate.toFixed(0)}% win rate
@@ -125,12 +122,12 @@ export default function ProfitLossCard() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-slate-700/50 rounded-lg p-2">
                   <div className="text-slate-400 text-xs mb-1">Total Wagered</div>
-                  <div className="text-white text-sm font-bold">{totalWagered.toFixed(2)} HTR</div>
+                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalWagered)} HTR</div>
                 </div>
 
                 <div className="bg-slate-700/50 rounded-lg p-2">
                   <div className="text-slate-400 text-xs mb-1">Total Payout</div>
-                  <div className="text-white text-sm font-bold">{totalPayout.toFixed(2)} HTR</div>
+                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalPayout)} HTR</div>
                 </div>
               </div>
 
@@ -138,8 +135,8 @@ export default function ProfitLossCard() {
               <div className="bg-slate-700/30 rounded-lg p-2 text-center">
                 <p className="text-slate-400 text-xs">
                   {isProfit
-                    ? `🎉 You're up ${profitLoss.toFixed(2)} HTR! Keep it going!`
-                    : `💪 Down ${Math.abs(profitLoss).toFixed(2)} HTR - time to turn it around!`}
+                    ? `You're up ${formatBalanceWithCommas(profitLoss)} HTR! Keep it going!`
+                    : `Down ${formatBalanceWithCommas(Math.abs(profitLoss))} HTR - time to turn it around!`}
                 </p>
               </div>
             </div>
