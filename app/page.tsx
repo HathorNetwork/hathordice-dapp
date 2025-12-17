@@ -107,16 +107,32 @@ export default function Home() {
     setSelectedToken(newToken);
   };
 
-  // Track previous token to only refresh when it actually changes
+  // Track previous token to detect token changes
   const prevTokenRef = useRef(selectedToken);
+  // Track if we've fetched balance for the current connection
+  const hasFetchedForConnectionRef = useRef(false);
 
-  // Refresh wallet balance when token changes (not on initial connection)
+  // Reset fetch flag when disconnected
   useEffect(() => {
-    // Only refresh if token actually changed, not on initial connection
-    if (prevTokenRef.current !== selectedToken && isConnected && address) {
+    if (!isConnected) {
+      hasFetchedForConnectionRef.current = false;
+    }
+  }, [isConnected]);
+
+  // Refresh wallet balance when token changes OR on initial connection
+  useEffect(() => {
+    if (!isConnected || !address) return;
+
+    const tokenChanged = prevTokenRef.current !== selectedToken;
+    const needsInitialFetch = !hasFetchedForConnectionRef.current;
+
+    // Fetch balance if token changed or haven't fetched yet for this connection
+    if (tokenChanged || needsInitialFetch) {
       const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
       refreshBalance(tokenUid);
+      hasFetchedForConnectionRef.current = true;
     }
+
     prevTokenRef.current = selectedToken;
   }, [selectedToken, isConnected, address]);
 

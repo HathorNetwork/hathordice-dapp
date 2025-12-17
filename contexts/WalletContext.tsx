@@ -94,6 +94,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoadingBalance(true);
+    setBalanceVerified(false); // Reset verified state while fetching new balance
     try {
       const balanceInfo = await rpcService.getBalance({
         network: 'testnet',
@@ -134,12 +135,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     if (adapter?.isConnected && adapter.address) {
-      // First update rpcService with adapter's request function
+      // Update rpcService with adapter's request function
       console.log('Updating rpcService with adapter.request');
       rpcService.updateClientAndSession(undefined, undefined, adapter.request);
-      // Then fetch balance
+      // Update address - balance fetch is handled by page.tsx with correct token
       setAddress(adapter.address);
-      fetchBalance(adapter.address);
     } else if (!adapter?.isConnected) {
       setAddress(null);
       setBalance(0n);
