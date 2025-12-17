@@ -21,6 +21,14 @@ export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
     setShowModal(true);
   };
 
+  // Handle network change - disconnect wallet first if connected
+  const handleNetworkChange = (newNetwork: typeof network) => {
+    if (isConnected) {
+      disconnectWallet();
+    }
+    switchNetwork(newNetwork);
+  };
+
   return (
     <>
       <header className="flex items-center justify-between p-6 border-b border-slate-700">
@@ -34,8 +42,7 @@ export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
             <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
             <NetworkSelector
               value={network}
-              onChange={switchNetwork}
-              disabled={isConnected}
+              onChange={handleNetworkChange}
             />
             <div className="relative">
               <button

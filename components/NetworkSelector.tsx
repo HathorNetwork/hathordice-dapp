@@ -6,24 +6,26 @@ import { Network } from '@/lib/config';
 interface NetworkSelectorProps {
   value: Network;
   onChange: (network: Network) => void;
-  disabled?: boolean;
 }
 
-export function NetworkSelector({ value, onChange, disabled }: NetworkSelectorProps) {
+export function NetworkSelector({ value, onChange }: NetworkSelectorProps) {
   const handleChange = (value: string) => {
     onChange(value as Network);
   };
 
+  const networkLabels: Record<string, string> = {
+    testnet: 'Testnet',
+    mainnet: 'Mainnet',
+  };
+
   return (
-    <Select value={value} onValueChange={handleChange} disabled={disabled}>
-      <SelectTrigger className="w-full md:w-[85px]">
-        <SelectValue placeholder="Select network" />
+    <Select value={value} onValueChange={handleChange}>
+      <SelectTrigger className="w-full md:w-[92px]">
+        <SelectValue placeholder="Select network" labels={networkLabels} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="testnet">India Testnet</SelectItem>
-        <SelectItem value="mainnet" disabled>
-          Mainnet (Coming Soon)
-        </SelectItem>
+        <SelectItem value="mainnet">Mainnet</SelectItem>
+        <SelectItem value="testnet">Testnet</SelectItem>
       </SelectContent>
     </Select>
   );

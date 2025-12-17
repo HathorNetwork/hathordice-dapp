@@ -68,6 +68,14 @@ export default function Home() {
     setExpandedCard(expandedCard === cardId ? null : cardId);
   };
 
+  // Handle network change - disconnect wallet first if connected
+  const handleNetworkChange = (newNetwork: typeof network) => {
+    if (isConnected) {
+      disconnectWallet();
+    }
+    switchNetwork(newNetwork);
+  };
+
   // Fetch claimable balance when connected or token changes
   useEffect(() => {
     const fetchClaimableBalance = async () => {
@@ -98,7 +106,9 @@ export default function Home() {
     };
 
     fetchClaimableBalance();
-  }, [isConnected, address, selectedToken, getContractIdForToken, coreAPI, setContractBalance]);
+    // Only re-fetch when connection, address, or token actually changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, selectedToken]);
 
   // Handle token change - clear balance and fetch new one
   const handleTokenChange = (newToken: string) => {
@@ -140,6 +150,41 @@ export default function Home() {
   const handleWithdrawClick = () => {
     setShowWithdrawModal(true);
     setWithdrawAmount('');
+  };
+
+  // Quick withdraw - withdraws full contract balance without modal
+  const handleQuickWithdraw = async () => {
+    if (!isConnected || contractBalance <= 0n) {
+      return;
+    }
+
+    const contractId = getContractIdForToken(selectedToken);
+    if (!contractId) {
+      toast.error('Contract not found for token');
+      return;
+    }
+
+    const contractState = getContractStateForToken(selectedToken);
+    const tokenUid = contractState?.token_uid || '00';
+    const withdrawAmount = Number(contractBalance) / 100;
+
+    setIsClaiming(true);
+    toast.info('⏳ Please confirm the withdrawal in your wallet...');
+
+    try {
+      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid);
+
+      // Update balances locally IMMEDIATELY after successful withdrawal
+      const withdrawAmountCents = Math.round(withdrawAmount * 100);
+      setBalance(prev => prev + BigInt(withdrawAmountCents));
+      setContractBalance(0n);
+
+      toast.success(`Withdrawal successful! TX: ${result.response.hash?.slice(0, 10)}...`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to withdraw');
+    } finally {
+      setIsClaiming(false);
+    }
   };
 
   const handleWithdrawSubmit = async () => {
@@ -253,8 +298,7 @@ export default function Home() {
           <TokenSelector selectedToken={selectedToken} onTokenChange={handleTokenChange} />
           <NetworkSelector
             value={network}
-            onChange={switchNetwork}
-            disabled={isConnected}
+            onChange={handleNetworkChange}
           />
           {isConnected ? (
             <div className="relative">
@@ -296,7 +340,7 @@ export default function Home() {
           selectedToken={selectedToken}
           onTokenChange={handleTokenChange}
           network={network}
-          onNetworkChange={switchNetwork}
+          onNetworkChange={handleNetworkChange}
           onConnectWallet={() => setShowWalletModal(true)}
           onDisconnectWallet={disconnectWallet}
           formattedBalance={formattedBalance}
@@ -314,6 +358,9 @@ export default function Home() {
           isConnected={isConnected}
           isLoadingBalance={isLoadingBalance}
           walletType={walletType ?? undefined}
+          contractBalance={contractBalance}
+          onWithdraw={handleQuickWithdraw}
+          isWithdrawing={isClaiming}
         />
 
         {/* Wallet Connection Modal */}

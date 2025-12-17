@@ -14,10 +14,10 @@ interface WalletContextType {
   contractBalance: bigint;
   balanceVerified: boolean;
   isLoadingBalance: boolean;
-  setContractBalance: (balance: bigint) => void;
+  setContractBalance: React.Dispatch<React.SetStateAction<bigint>>;
   connectWallet: () => void;
   disconnectWallet: () => void;
-  setBalance: (balance: bigint) => void;
+  setBalance: React.Dispatch<React.SetStateAction<bigint>>;
   placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, contractBalance: bigint) => Promise<any>;
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;

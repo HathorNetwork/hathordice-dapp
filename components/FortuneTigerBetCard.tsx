@@ -61,7 +61,7 @@ export default function FortuneTigerBetCard({
   onLoadBalance,
   walletType,
 }: FortuneTigerBetCardProps) {
-  const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified, setBalance, setContractBalance } = useWallet();
+  const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified, setBalance, setContractBalance, claimBalance } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken, allBets, address } = useHathor();
   const [showMobileDisconnect, setShowMobileDisconnect] = useState(false);
   const contractBalanceInTokens = Number(contractBalance) / 100;
@@ -96,6 +96,7 @@ export default function FortuneTigerBetCard({
   const [showAnimationSelector, setShowAnimationSelector] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [hasAttemptedBalance, setHasAttemptedBalance] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const contractState = getContractStateForToken(selectedToken);
   const randomBitLength = contractState?.random_bit_length || 16;
@@ -339,6 +340,39 @@ export default function FortuneTigerBetCard({
     }
   };
 
+  const handleWithdrawGains = async () => {
+    if (!isConnected || contractBalance <= 0n) {
+      return;
+    }
+
+    const contractId = getContractIdForToken(selectedToken);
+    if (!contractId) {
+      toast.error('Contract not found for token');
+      return;
+    }
+
+    const tokenUid = contractState?.token_uid || '00';
+    const withdrawAmount = Number(contractBalance) / 100; // Convert cents to tokens
+
+    setIsWithdrawing(true);
+    toast.info('⏳ Please confirm the withdrawal in your wallet...');
+
+    try {
+      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid);
+
+      // Update balances locally IMMEDIATELY after successful withdrawal
+      const withdrawAmountCents = Math.round(withdrawAmount * 100);
+      setBalance(prev => prev + BigInt(withdrawAmountCents));
+      setContractBalance(0n);
+
+      toast.success(`Withdrawal successful! TX: ${result.response.hash?.slice(0, 10)}...`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to withdraw');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen bg-[#0f0518] flex items-center justify-center p-4 font-serif">
@@ -383,7 +417,6 @@ export default function FortuneTigerBetCard({
                 <NetworkSelector
                   value={network}
                   onChange={onNetworkChange}
-                  disabled={isConnected}
                 />
               </div>
             )}
@@ -664,14 +697,25 @@ export default function FortuneTigerBetCard({
             {/* Mobile Balance & Statistics - Below SPIN button on mobile only */}
             <div className="flex md:hidden items-stretch justify-center gap-3 mt-2 w-full">
               {localFormattedBalance ? (
-                <div className="flex-1 px-4 py-2 rounded-full border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/30 via-black/50 to-yellow-900/30 backdrop-blur-sm flex items-center justify-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="text-base">💰</div>
-                    <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 font-mono">
-                      {localFormattedBalance}
-                    </span>
+                <>
+                  <div className="flex-1 px-4 py-2 rounded-full border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/30 via-black/50 to-yellow-900/30 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="text-base">💰</div>
+                      <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 font-mono">
+                        {localFormattedBalance}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                  {contractBalance > 0n && (
+                    <button
+                      onClick={handleWithdrawGains}
+                      disabled={isWithdrawing || isPlacingBet || isSpinning}
+                      className="flex-1 px-4 py-2 rounded-full text-xs font-bold transition-all bg-white/10 backdrop-blur-md border-2 border-white/20 shadow-xl text-white/90 hover:text-white hover:bg-white/20 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isWithdrawing ? 'Withdrawing...' : 'Withdraw gains'}
+                    </button>
+                  )}
+                </>
               ) : isLoadingBalance ? (
                 <div className="flex-1 px-4 py-2 rounded-full text-xs font-medium text-slate-300 text-center flex items-center justify-center">
                   Authorize to view balance
