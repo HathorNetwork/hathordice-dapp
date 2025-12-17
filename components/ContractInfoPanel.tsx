@@ -7,9 +7,10 @@ import { formatTokenAmount, formatNumber } from '@/lib/utils';
 interface ContractInfoPanelProps {
   contractState: ContractState | null;
   loading?: boolean;
+  token?: string;
 }
 
-export function ContractInfoPanel({ contractState, loading }: ContractInfoPanelProps) {
+export function ContractInfoPanel({ contractState, loading, token = 'HTR' }: ContractInfoPanelProps) {
   if (loading) {
     return (
       <Card>
@@ -57,15 +58,15 @@ export function ContractInfoPanel({ contractState, loading }: ContractInfoPanelP
           </div>
           <div>
             <p className="text-sm text-slate-400">Max Bet</p>
-            <p className="text-lg font-semibold">{formatTokenAmount(contractState.max_bet_amount)} HTR</p>
+            <p className="text-lg font-semibold">{formatTokenAmount(contractState.max_bet_amount)} {token}</p>
           </div>
           <div>
             <p className="text-sm text-slate-400">Available Liquidity</p>
-            <p className="text-lg font-semibold">{formatTokenAmount(contractState.available_tokens)} HTR</p>
+            <p className="text-lg font-semibold">{formatTokenAmount(contractState.available_tokens)} {token}</p>
           </div>
           <div>
             <p className="text-sm text-slate-400">Total Liquidity</p>
-            <p className="text-lg font-semibold">{formatTokenAmount(contractState.total_liquidity_provided)} HTR</p>
+            <p className="text-lg font-semibold">{formatTokenAmount(contractState.total_liquidity_provided)} {token}</p>
           </div>
           <div>
             <p className="text-sm text-slate-400">Random Bits</p>

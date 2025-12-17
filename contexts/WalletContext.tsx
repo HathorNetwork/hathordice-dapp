@@ -22,7 +22,7 @@ interface WalletContextType {
   addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
   claimBalance: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
-  refreshBalance: () => Promise<void>;
+  refreshBalance: (tokenUid?: string) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -82,7 +82,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   // Define fetchBalance before it's used in useEffect
-  const fetchBalance = async (addr: string, forceRefresh: boolean = false) => {
+  const fetchBalance = async (addr: string, forceRefresh: boolean = false, tokenUid: string = '00') => {
     if (!addr) return;
 
     // Don't use cache - always fetch fresh balance to ensure authorization
@@ -97,7 +97,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const balanceInfo = await rpcService.getBalance({
         network: 'testnet',
-        tokens: ['00'],
+        tokens: [tokenUid],
       });
 
       console.log('Balance response:', balanceInfo);
@@ -347,9 +347,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshBalance = async () => {
+  const refreshBalance = async (tokenUid: string = '00') => {
     if (address) {
-      await fetchBalance(address, true); // Force refresh
+      await fetchBalance(address, true, tokenUid); // Force refresh
     }
   };
 

@@ -4,7 +4,11 @@ import { useMemo, useState } from 'react';
 import { useHathor } from '@/contexts/HathorContext';
 import { formatBalanceWithCommas } from '@/lib/utils';
 
-export default function ProfitLossCard() {
+interface ProfitLossCardProps {
+  selectedToken?: string;
+}
+
+export default function ProfitLossCard({ selectedToken = 'HTR' }: ProfitLossCardProps) {
   const { allBets, address, isLoadingHistory } = useHathor();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -21,9 +25,9 @@ export default function ProfitLossCard() {
       };
     }
 
-    // Filter for user's completed bets only
+    // Filter for user's completed bets only for selected token
     const userBets = allBets.filter(
-      bet => bet.isYourBet && bet.result !== 'pending' && bet.result !== 'failed'
+      bet => bet.isYourBet && bet.result !== 'pending' && bet.result !== 'failed' && bet.token === selectedToken
     );
 
     const wagered = userBets.reduce((sum, bet) => sum + bet.amount, 0);
@@ -39,7 +43,7 @@ export default function ProfitLossCard() {
       winCount: wins,
       loseCount: losses,
     };
-  }, [allBets, address]);
+  }, [allBets, address, selectedToken]);
 
   const { totalBets, totalWagered, totalPayout, profitLoss, winCount, loseCount } = stats;
 
@@ -62,10 +66,6 @@ export default function ProfitLossCard() {
         <div className="text-center py-8">
           <p className="text-slate-400">Connect your wallet to view your stats</p>
         </div>
-      ) : isLoadingHistory && totalBets === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-slate-400">Loading your stats...</p>
-        </div>
       ) : totalBets === 0 ? (
         <div className="text-center py-8">
           <p className="text-slate-400 mb-2">No bets yet!</p>
@@ -85,7 +85,7 @@ export default function ProfitLossCard() {
                 <div className={`text-2xl font-bold ${
                   isProfit ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {isProfit ? '+' : ''}{formatBalanceWithCommas(profitLoss)} HTR
+                  {isProfit ? '+' : ''}{formatBalanceWithCommas(profitLoss)} {selectedToken}
                 </div>
                 <div className="text-slate-400 text-xs mt-1">
                   {winCount}W / {loseCount}L • {winRate.toFixed(0)}% win rate
@@ -122,12 +122,12 @@ export default function ProfitLossCard() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-slate-700/50 rounded-lg p-2">
                   <div className="text-slate-400 text-xs mb-1">Total Wagered</div>
-                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalWagered)} HTR</div>
+                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalWagered)} {selectedToken}</div>
                 </div>
 
                 <div className="bg-slate-700/50 rounded-lg p-2">
                   <div className="text-slate-400 text-xs mb-1">Total Payout</div>
-                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalPayout)} HTR</div>
+                  <div className="text-white text-sm font-bold">{formatBalanceWithCommas(totalPayout)} {selectedToken}</div>
                 </div>
               </div>
 
@@ -135,8 +135,8 @@ export default function ProfitLossCard() {
               <div className="bg-slate-700/30 rounded-lg p-2 text-center">
                 <p className="text-slate-400 text-xs">
                   {isProfit
-                    ? `You're up ${formatBalanceWithCommas(profitLoss)} HTR! Keep it going!`
-                    : `Down ${formatBalanceWithCommas(Math.abs(profitLoss))} HTR - time to turn it around!`}
+                    ? `You're up ${formatBalanceWithCommas(profitLoss)} ${selectedToken}! Keep it going!`
+                    : `Down ${formatBalanceWithCommas(Math.abs(profitLoss))} ${selectedToken} - time to turn it around!`}
                 </p>
               </div>
             </div>

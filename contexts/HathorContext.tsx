@@ -33,9 +33,9 @@ interface HathorContextType {
 
 const HathorContext = createContext<HathorContextType | undefined>(undefined);
 
-const TOKEN_UID_MAP: Record<string, string> = {
+// Cache for token symbols fetched from the node
+const tokenSymbolCache: Record<string, string> = {
   '00': 'HTR',
-  '01': 'USDC',
 };
 
 const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
@@ -150,6 +150,15 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     return tokenContractMap[token] || null;
   };
 
+  const getTokenForContractId = (contractId: string): string => {
+    for (const [token, id] of Object.entries(tokenContractMap)) {
+      if (id === contractId) {
+        return token;
+      }
+    }
+    return 'HTR'; // fallback
+  };
+
   const refreshContractStates = async () => {
     if (config.useMockWallet) {
       setContractStates(MOCK_CONTRACT_STATES);
@@ -167,9 +176,24 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       const map: Record<string, string> = {};
       for (const contractId of config.contractIds) {
         const state = await coreAPI.getContractState(contractId);
-        const tokenName = TOKEN_UID_MAP[state.token_uid] || state.token_uid;
-        states[tokenName] = state;
-        map[tokenName] = contractId;
+
+        // Get token symbol - check cache first, then fetch from node
+        let tokenSymbol = tokenSymbolCache[state.token_uid];
+        if (!tokenSymbol) {
+          // Check if it's all zeros (HTR)
+          if (/^0+$/.test(state.token_uid)) {
+            tokenSymbol = 'HTR';
+          } else {
+            // Fetch from node
+            const tokenInfo = await coreAPI.getTokenInfo(state.token_uid);
+            tokenSymbol = tokenInfo?.symbol || state.token_uid.slice(0, 8);
+          }
+          // Cache the result
+          tokenSymbolCache[state.token_uid] = tokenSymbol;
+        }
+
+        states[tokenSymbol] = state;
+        map[tokenSymbol] = contractId;
       }
       setContractStates(states);
       setTokenContractMap(map);
@@ -313,7 +337,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
               result: tx.is_voided ? 'failed' : (hasPendingArgs || !tx.first_block ? 'pending' : (payout > 0 ? 'win' : 'lose')),
               payout,
               potentialPayout,
-              token: 'HTR',
+              token: getTokenForContractId(contractId),
               timestamp: tx.timestamp * 1000,
               contractId,
               isYourBet,
@@ -404,7 +428,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
                 threshold: tx.nc_args_decoded[1],
                 result: payout > 0 ? 'win' : 'lose',
                 payout,
-                token: 'HTR',
+                token: getTokenForContractId(contractId),
                 timestamp: tx.timestamp * 1000,
                 contractId,
                 isYourBet: true,
@@ -434,6 +458,20 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
   // Centralized refresh function that updates all history data
   const refreshHistory = async () => {
+    if (config.useMockWallet) {
+      // Use mock data in mock mode
+      const mockBets = await fetchRecentBets();
+      setAllBets(mockBets);
+      setAllTransactions([]);
+      setLastHistoryUpdate(new Date());
+      return;
+    }
+
+    // Wait for tokenContractMap to be populated before fetching history
+    if (Object.keys(tokenContractMap).length === 0 && config.contractIds.length > 0) {
+      return;
+    }
+
     setIsLoadingHistory(true);
     try {
       const allTxs: ContractTransaction[] = [];
@@ -493,7 +531,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
               luckyNumber,
               result,
               payout,
-              token: 'HTR',
+              token: getTokenForContractId(contractId),
               timestamp: tx.timestamp * 1000,
               contractId,
               isYourBet,
@@ -521,13 +559,13 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Auto-refresh history on mount and when address/network changes
+  // Auto-refresh history on mount and when address/network/contracts change
   useEffect(() => {
     refreshHistory();
     const interval = setInterval(refreshHistory, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, network]);
+  }, [address, network, tokenContractMap]);
 
   return (
     <HathorContext.Provider

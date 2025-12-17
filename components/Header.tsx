@@ -5,17 +5,20 @@ import { useHathor } from '@/contexts/HathorContext';
 import { formatAddress } from '@/lib/utils';
 import { WalletConnectionModal } from './WalletConnectionModal';
 import { NetworkSelector } from './NetworkSelector';
+import TokenSelector from './TokenSelector';
 
-export default function Header() {
+interface HeaderProps {
+  selectedToken: string;
+  onTokenChange: (token: string) => void;
+}
+
+export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
   const { isConnected, address, disconnectWallet, network, switchNetwork } = useHathor();
   const [showModal, setShowModal] = useState(false);
+  const [showDisconnectMenu, setShowDisconnectMenu] = useState(false);
 
   const handleConnect = async () => {
     setShowModal(true);
-  };
-
-  const handleDisconnect = async () => {
-    await disconnectWallet();
   };
 
   return (
@@ -27,22 +30,38 @@ export default function Header() {
         </div>
 
         {isConnected ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
             <NetworkSelector
               value={network}
               onChange={switchNetwork}
               disabled={isConnected}
             />
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
+            <div className="relative">
+              <button
+                onClick={() => setShowDisconnectMenu(!showDisconnectMenu)}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors"
+              >
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
+              </button>
+              {showDisconnectMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDisconnectMenu(false)} />
+                  <div className="absolute top-full mt-2 right-0 z-50">
+                    <button
+                      onClick={() => {
+                        disconnectWallet();
+                        setShowDisconnectMenu(false);
+                      }}
+                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-            <button
-              onClick={handleDisconnect}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-            >
-              Disconnect
-            </button>
           </div>
         ) : (
           <button

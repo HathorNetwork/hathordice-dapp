@@ -70,11 +70,7 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
         )}
       </div>
 
-      {isLoadingHistory && operations.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-slate-400">Loading operations...</p>
-        </div>
-      ) : operations.length === 0 ? (
+      {operations.length === 0 ? (
         <div className="text-center py-8 text-slate-400">
           No recent operations found
         </div>

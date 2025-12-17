@@ -1,6 +1,7 @@
 'use client';
 
-import { TOKENS } from '@/lib/utils';
+import { useHathor } from '@/contexts/HathorContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface TokenSelectorProps {
   selectedToken: string;
@@ -8,20 +9,23 @@ interface TokenSelectorProps {
 }
 
 export default function TokenSelector({ selectedToken, onTokenChange }: TokenSelectorProps) {
+  const { contractStates } = useHathor();
+
+  // Get available tokens from contract states
+  const availableTokens = Object.keys(contractStates);
+
   return (
-    <div className="flex items-center gap-3">
-      <label className="text-sm text-slate-400">Select Token</label>
-      <select
-        value={selectedToken}
-        onChange={(e) => onTokenChange(e.target.value)}
-        className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        {TOKENS.map((token) => (
-          <option key={token.value} value={token.value}>
-            {token.label}
-          </option>
+    <Select value={selectedToken} onValueChange={onTokenChange}>
+      <SelectTrigger className="w-full md:w-[85px]">
+        <SelectValue placeholder="Select token" />
+      </SelectTrigger>
+      <SelectContent>
+        {availableTokens.map((token) => (
+          <SelectItem key={token} value={token}>
+            {token}
+          </SelectItem>
         ))}
-      </select>
-    </div>
+      </SelectContent>
+    </Select>
   );
 }

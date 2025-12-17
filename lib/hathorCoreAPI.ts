@@ -119,4 +119,26 @@ export class HathorCoreAPI {
     }
     return 0n;
   }
+
+  async getTokenInfo(tokenUid: string): Promise<{ symbol: string; name: string } | null> {
+    // HTR native token
+    if (tokenUid === '00' || /^0+$/.test(tokenUid)) {
+      return { symbol: 'HTR', name: 'Hathor' };
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/thin_wallet/token?id=${tokenUid}`);
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      return {
+        symbol: data.symbol || tokenUid.slice(0, 8),
+        name: data.name || 'Unknown Token',
+      };
+    } catch (error) {
+      console.error('Failed to fetch token info:', error);
+      return null;
+    }
+  }
 }

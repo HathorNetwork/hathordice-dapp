@@ -7,14 +7,21 @@ import { useHathor } from '@/contexts/HathorContext';
 import HelpIcon from '@/components/HelpIcon';
 import BetResultNotification from '@/components/BetResultNotification';
 
-export default function RecentBetsTable() {
+interface RecentBetsTableProps {
+  selectedToken: string;
+}
+
+export default function RecentBetsTable({ selectedToken }: RecentBetsTableProps) {
   const { allBets, isLoadingHistory, lastHistoryUpdate, refreshHistory } = useHathor();
+
+  // Filter bets by selected token
+  const filteredBets = allBets.filter(bet => bet.token === selectedToken);
   const [notificationBet, setNotificationBet] = useState<Bet | null>(null);
   const previousBetsRef = useRef<Map<string, Bet>>(new Map());
 
-  // Check for automatic transitions when allBets changes
+  // Check for automatic transitions when filteredBets changes
   useEffect(() => {
-    allBets.forEach((bet) => {
+    filteredBets.forEach((bet) => {
       if (bet.isYourBet) {
         const previousBet = previousBetsRef.current.get(bet.id);
 
@@ -29,7 +36,7 @@ export default function RecentBetsTable() {
         previousBetsRef.current.set(bet.id, bet);
       }
     });
-  }, [allBets]);
+  }, [filteredBets]);
 
   const handleResultClick = (bet: Bet) => {
     // Only show animation for win/lose results
@@ -94,11 +101,7 @@ export default function RecentBetsTable() {
       </div>
 
       <div className="overflow-x-auto">
-        {isLoadingHistory && allBets.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-slate-400">Loading recent bets...</p>
-          </div>
-        ) : allBets.length === 0 ? (
+        {filteredBets.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-slate-400">No bets yet. Place a bet to get started!</p>
           </div>
@@ -116,7 +119,7 @@ export default function RecentBetsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {allBets.slice(0, 20).map((bet) => (
+              {filteredBets.slice(0, 20).map((bet) => (
                 <tr
                   key={bet.id}
                   className={`hover:bg-slate-700/50 transition-colors ${

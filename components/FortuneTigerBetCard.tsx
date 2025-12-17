@@ -32,14 +32,37 @@ import { GoddessSpinner } from './GoddessSpinner';
 import { GoldButton } from './GoldButton';
 import { GoldFrame } from './GoldFrame';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
+import TokenSelector from './TokenSelector';
+import { NetworkSelector } from './NetworkSelector';
+import { Network } from '@/lib/config';
+import { formatAddress } from '@/lib/utils';
 
 interface FortuneTigerBetCardProps {
   selectedToken: string;
+  onTokenChange?: (token: string) => void;
+  network?: Network;
+  onNetworkChange?: (network: Network) => void;
+  onConnectWallet?: () => void;
+  onDisconnectWallet?: () => void;
+  formattedBalance?: string;
+  onLoadBalance?: () => void;
+  walletType?: string;
 }
 
-export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCardProps) {
+export default function FortuneTigerBetCard({
+  selectedToken,
+  onTokenChange,
+  network,
+  onNetworkChange,
+  onConnectWallet,
+  onDisconnectWallet,
+  formattedBalance,
+  onLoadBalance,
+  walletType,
+}: FortuneTigerBetCardProps) {
   const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken, allBets, address } = useHathor();
+  const [showMobileDisconnect, setShowMobileDisconnect] = useState(false);
   const contractBalanceInTokens = Number(contractBalance) / 100;
   const totalBalance = walletBalance + contractBalanceInTokens;
 
@@ -129,14 +152,15 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
       // Only trigger balance request if it hasn't been attempted yet in this session
       if (!isLoadingBalance && !hasAttemptedBalance && balance === 0n) {
         setHasAttemptedBalance(true);
-        refreshBalance();
+        const tokenUid = contractState?.token_uid || '00';
+        refreshBalance(tokenUid);
       }
       // Close popup when balance is loaded
       if (balance > 0n) {
         setShowAuthPopup(false);
       }
     }
-  }, [balance, showAuthPopup, isLoadingBalance, hasAttemptedBalance, refreshBalance]);
+  }, [balance, showAuthPopup, isLoadingBalance, hasAttemptedBalance, refreshBalance, contractState]);
 
   // Check for debug mode from localStorage
   useEffect(() => {
@@ -293,18 +317,70 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
         <div className="w-full max-w-4xl relative">
 
           {/* Title */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-4 md:mb-8">
             <motion.h2
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-5xl md:text-6xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-yellow-700 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center justify-center gap-4 tracking-wider"
+              className="text-4xl md:text-6xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-yellow-700 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center justify-center gap-4 tracking-wider"
             >
               HATHOR DICE
             </motion.h2>
           </div>
 
+          {/* Mobile Wallet Controls - Below title on mobile only */}
+          <div className="flex md:hidden items-center justify-center gap-2 mb-4 px-4 w-full">
+            {onTokenChange && (
+              <div className="flex-1">
+                <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
+              </div>
+            )}
+            {network && onNetworkChange && (
+              <div className="flex-1">
+                <NetworkSelector
+                  value={network}
+                  onChange={onNetworkChange}
+                  disabled={isConnected}
+                />
+              </div>
+            )}
+            {isConnected ? (
+              <div className="relative flex-1">
+                <button
+                  onClick={() => setShowMobileDisconnect(!showMobileDisconnect)}
+                  className="flex items-center justify-center gap-2 px-3 h-10 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors w-full"
+                >
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-xs text-slate-300">{formatAddress(address || '')}</span>
+                </button>
+                {showMobileDisconnect && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMobileDisconnect(false)} />
+                    <div className="absolute top-full mt-2 right-0 z-50">
+                      <button
+                        onClick={() => {
+                          onDisconnectWallet?.();
+                          setShowMobileDisconnect(false);
+                        }}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors whitespace-nowrap text-sm"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : onConnectWallet && (
+              <button
+                onClick={onConnectWallet}
+                className="flex-1 px-4 h-10 rounded-lg font-bold text-sm bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 hover:brightness-110 transition-all"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+
           {/* Slot Machine Area */}
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8 px-4 md:px-0">
             <SlotMachineAnimation
               isSpinning={isSpinning}
               finalNumber={luckyNumber}
@@ -313,10 +389,10 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
           </div>
 
           {/* Controls Container */}
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-4 md:gap-6 px-4 md:px-0">
 
             {/* Top Row: Selects - aligned with SPIN button width */}
-            <div className="flex items-start gap-6 justify-center w-[424px]">
+            <div className="flex items-start gap-3 md:gap-6 justify-center w-full md:w-[424px]">
               {/* Bet Amount Select */}
               <div className="relative flex-1">
                 <Select
@@ -334,8 +410,8 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
                   }}
                   disabled={isPlacingBet || isSpinning}
                 >
-                  <SelectTrigger className="h-[72px] px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
-                    <span className="text-xl text-yellow-400">{betAmount} HTR</span>
+                  <SelectTrigger className="h-[52px] md:h-[72px] px-3 md:px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
+                    <span className="text-base md:text-xl text-yellow-400">{betAmount} {selectedToken}</span>
                   </SelectTrigger>
                   <SelectContent className="border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/40 via-black/80 to-yellow-900/40 backdrop-blur-sm">
                     {[1, 10, 100, 250].map(amount => (
@@ -344,7 +420,7 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
                         value={amount.toString()}
                         className="text-yellow-400 hover:bg-yellow-500/20 focus:bg-yellow-500/20 cursor-pointer"
                       >
-                        {amount} HTR
+                        {amount} {selectedToken}
                       </SelectItem>
                     ))}
                     <SelectItem
@@ -421,8 +497,8 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
                   }}
                   disabled={isPlacingBet || isSpinning}
                 >
-                  <SelectTrigger className="h-[72px] px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
-                    <span className="text-xl text-yellow-400">{selectedMultiplier} x</span>
+                  <SelectTrigger className="h-[52px] md:h-[72px] px-3 md:px-6 border-2 border-yellow-700/50 bg-black/40 hover:border-yellow-500 hover:bg-black/60 rounded-lg font-bold transition-all w-full">
+                    <span className="text-base md:text-xl text-yellow-400">{selectedMultiplier} x</span>
                   </SelectTrigger>
                   <SelectContent className="border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/40 via-black/80 to-yellow-900/40 backdrop-blur-sm">
                     {[1.5, 2, 5, 10].map(mult => (
@@ -443,7 +519,7 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
                   </SelectContent>
                 </Select>
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-yellow-400/80 text-sm font-medium">
+                  <span className="text-yellow-400/80 text-xs md:text-sm font-medium">
                     Win Probability: {thresholdToWinChance(threshold, contractState?.random_bit_length || 16).toFixed(1)}%
                   </span>
                   <div className="group relative">
@@ -516,11 +592,11 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
             </div>
 
             {/* Spin Button (Large Rounded) */}
-            <div className="mt-2">
+            <div className="mt-2 w-full md:w-auto">
               <button
                 onClick={handleSpin}
                 disabled={isPlacingBet || isSpinning}
-                className="relative w-[424px] h-[120px] text-5xl font-bold tracking-widest rounded-xl bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 shadow-xl border-4 border-yellow-300 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-hidden"
+                className="relative w-full md:w-[424px] h-[80px] md:h-[120px] text-3xl md:text-5xl font-bold tracking-widest rounded-xl bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 shadow-xl border-4 border-yellow-300 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-hidden"
               >
                 {/* Inner Shine */}
                 <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
@@ -530,14 +606,56 @@ export default function FortuneTigerBetCard({ selectedToken }: FortuneTigerBetCa
                   {isPlacingBet ? (
                     <div className="flex items-center justify-center gap-2">
                       <GoddessSpinner size={48} interval={500} />
-                      <span className="text-2xl">CONFIRMING...</span>
+                      <span className="text-xl md:text-2xl">CONFIRMING...</span>
                     </div>
                   ) : isSpinning ? (
-                    <span className="text-3xl">SPINNING...</span>
+                    <span className="text-2xl md:text-3xl">SPINNING...</span>
                   ) : (
                     'SPIN'
                   )}
                 </div>
+              </button>
+            </div>
+
+            {/* Mobile Balance & Statistics - Below SPIN button on mobile only */}
+            <div className="flex md:hidden items-stretch justify-center gap-3 mt-2 w-full">
+              {formattedBalance ? (
+                <div className="flex-1 px-4 py-2 rounded-full border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/30 via-black/50 to-yellow-900/30 backdrop-blur-sm flex items-center justify-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="text-base">💰</div>
+                    <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 font-mono">
+                      {formattedBalance}
+                    </span>
+                  </div>
+                </div>
+              ) : isLoadingBalance ? (
+                <div className="flex-1 px-4 py-2 rounded-full text-xs font-medium text-slate-300 text-center flex items-center justify-center">
+                  Authorize to view balance
+                </div>
+              ) : (
+                isConnected && onLoadBalance && (
+                  <button
+                    onClick={() => {
+                      if (walletType !== 'metamask') {
+                        toast.info('⏳ Please confirm the operation in your wallet...');
+                      }
+                      onLoadBalance();
+                    }}
+                    className="flex-1 px-4 py-2 rounded-full text-xs font-bold transition-all bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 hover:brightness-110 shadow-xl flex items-center justify-center"
+                  >
+                    Load Balance
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => {
+                  // Navigate to statistics/classic mode - this will be handled by parent
+                  const event = new CustomEvent('openStatistics');
+                  window.dispatchEvent(event);
+                }}
+                className="flex-1 px-4 py-2 rounded-full text-xs font-bold transition-all bg-white/10 backdrop-blur-md border-2 border-white/20 shadow-xl text-white/90 hover:text-white hover:bg-white/20 flex items-center justify-center"
+              >
+                Statistics
               </button>
             </div>
 

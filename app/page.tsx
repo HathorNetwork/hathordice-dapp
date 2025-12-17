@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { useHathor } from '@/contexts/HathorContext';
 import { useUnifiedWallet } from '@/contexts/UnifiedWalletContext';
@@ -25,7 +25,7 @@ import { toast } from '@/lib/toast';
 import { APP_VERSION } from '@/lib/version';
 
 export default function Home() {
-  const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance, balanceVerified, isLoadingBalance } = useWallet();
+  const { connected, balance, address, claimBalance, refreshBalance, contractBalance, setContractBalance, setBalance, balanceVerified, isLoadingBalance } = useWallet();
   const { network, getContractStateForToken, getContractIdForToken, switchNetwork, isConnected, coreAPI, disconnectWallet } = useHathor();
   const { walletType } = useUnifiedWallet();
   const [selectedToken, setSelectedToken] = useState('HTR');
@@ -48,6 +48,15 @@ export default function Home() {
     if (storedMode && (storedMode === 'classic' || storedMode === 'fortune-tiger')) {
       setUIMode(storedMode);
     }
+  }, []);
+
+  // Listen for openStatistics event from mobile UI
+  useEffect(() => {
+    const handleOpenStatistics = () => {
+      handleModeChange('classic');
+    };
+    window.addEventListener('openStatistics', handleOpenStatistics);
+    return () => window.removeEventListener('openStatistics', handleOpenStatistics);
   }, []);
 
   const handleModeChange = (mode: UIMode) => {
@@ -90,6 +99,26 @@ export default function Home() {
 
     fetchClaimableBalance();
   }, [isConnected, address, selectedToken, getContractIdForToken, coreAPI, setContractBalance]);
+
+  // Handle token change - clear balance and fetch new one
+  const handleTokenChange = (newToken: string) => {
+    // Clear current balance when switching tokens
+    setBalance(0n);
+    setSelectedToken(newToken);
+  };
+
+  // Track previous token to only refresh when it actually changes
+  const prevTokenRef = useRef(selectedToken);
+
+  // Refresh wallet balance when token changes (not on initial connection)
+  useEffect(() => {
+    // Only refresh if token actually changed, not on initial connection
+    if (prevTokenRef.current !== selectedToken && isConnected && address) {
+      const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+      refreshBalance(tokenUid);
+    }
+    prevTokenRef.current = selectedToken;
+  }, [selectedToken, isConnected, address]);
 
   const handleWithdrawClick = () => {
     setShowWithdrawModal(true);
@@ -147,7 +176,8 @@ export default function Home() {
   const handleRefreshWalletBalance = async () => {
     setIsRefreshingWallet(true);
     try {
-      await refreshBalance();
+      const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+      await refreshBalance(tokenUid);
       toast.success('Wallet balance refreshed');
     } catch (error: any) {
       toast.error('Failed to refresh wallet balance');
@@ -196,8 +226,9 @@ export default function Home() {
         {showIntro && (
           <IntroVideo onComplete={() => setShowIntro(false)} />
         )}
-        {/* Wallet Controls - Top Right */}
-        <div className="fixed top-4 right-4 z-40 flex items-center gap-3">
+        {/* Wallet Controls - Top Right on desktop, hidden on mobile (shown in FortuneTigerBetCard) */}
+        <div className="hidden md:flex fixed top-4 right-4 z-40 items-center gap-2">
+          <TokenSelector selectedToken={selectedToken} onTokenChange={handleTokenChange} />
           <NetworkSelector
             value={network}
             onChange={switchNetwork}
@@ -207,7 +238,7 @@ export default function Home() {
             <div className="relative">
               <button
                 onClick={() => setShowDisconnectMenu(!showDisconnectMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors whitespace-nowrap"
               >
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
@@ -232,14 +263,27 @@ export default function Home() {
           ) : (
             <button
               onClick={() => setShowWalletModal(true)}
-              className="px-6 py-2 rounded-lg font-bold bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 hover:brightness-110 transition-all"
+              className="px-4 py-2 rounded-lg font-bold bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 hover:brightness-110 transition-all whitespace-nowrap"
             >
               Connect Wallet
             </button>
           )}
         </div>
 
-        <FortuneTigerBetCard selectedToken={selectedToken} />
+        <FortuneTigerBetCard
+          selectedToken={selectedToken}
+          onTokenChange={handleTokenChange}
+          network={network}
+          onNetworkChange={switchNetwork}
+          onConnectWallet={() => setShowWalletModal(true)}
+          onDisconnectWallet={disconnectWallet}
+          formattedBalance={formattedBalance}
+          onLoadBalance={() => {
+            const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+            refreshBalance(tokenUid);
+          }}
+          walletType={walletType}
+        />
         <UIModeSwitcher
           currentMode={uiMode}
           onModeChange={handleModeChange}
@@ -261,24 +305,21 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <Header />
+      <Header selectedToken={selectedToken} onTokenChange={handleTokenChange} />
 
       <main className="container mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {connected && <BalanceCard selectedToken={selectedToken} />}
-            <ProfitLossCard />
-            <RecentBetsTable />
+            <ProfitLossCard selectedToken={selectedToken} />
+            <RecentBetsTable selectedToken={selectedToken} />
             <RecentOperationsTable selectedToken={selectedToken} />
           </div>
 
           <div className="space-y-6">
             {/* Place Bet - Right Panel */}
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">PLACE BET</h2>
-                <TokenSelector selectedToken={selectedToken} onTokenChange={setSelectedToken} />
-              </div>
+              <h2 className="text-lg font-bold text-white mb-4">PLACE BET</h2>
 
               {isConnected && (
                 <div className="mb-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600 space-y-3">
@@ -300,7 +341,8 @@ export default function Home() {
                           if (walletType !== 'metamask') {
                             toast.info('⏳ Please confirm the operation in your wallet...');
                           }
-                          refreshBalance();
+                          const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+                          refreshBalance(tokenUid);
                         }}
                         className="px-3 py-1 font-medium rounded transition-colors hover:opacity-90"
                         style={{ background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}

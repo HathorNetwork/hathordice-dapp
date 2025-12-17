@@ -19,9 +19,10 @@ interface UIModeSwitcherProps {
 
 export function UIModeSwitcher({ currentMode, onModeChange, balance, onGetBalance, isConnected, isLoadingBalance, walletType }: UIModeSwitcherProps) {
   // If in fortune-tiger mode, show Statistics button with balance or Get Balance button
+  // Hidden on mobile - mobile version is rendered inside FortuneTigerBetCard
   if (currentMode === 'fortune-tiger') {
     return (
-      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
+      <div className="hidden md:flex fixed bottom-4 right-4 z-50 items-center gap-3">
         {balance ? (
           <div className="px-4 py-2 rounded-full border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/30 via-black/50 to-yellow-900/30 backdrop-blur-sm">
             <div className="flex items-center gap-2">

@@ -61,7 +61,7 @@ export function SlotMachineAnimation({
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Gold Frame Container */}
-      <GoldFrame className="mb-8">
+      <GoldFrame className="mb-4 md:mb-8">
         {/* 3x3 Grid - Connected Columns */}
         <div className="grid grid-cols-3 gap-0 p-1 bg-white relative overflow-hidden rounded-2xl border-4 border-white">
           {/* Render 3 Columns - Each with different spin speed */}
