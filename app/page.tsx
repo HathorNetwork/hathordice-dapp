@@ -134,6 +134,7 @@ export default function Home() {
     }
 
     prevTokenRef.current = selectedToken;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedToken, isConnected, address]);
 
   const handleWithdrawClick = () => {
@@ -298,7 +299,7 @@ export default function Home() {
             const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
             refreshBalance(tokenUid);
           }}
-          walletType={walletType}
+          walletType={walletType ?? undefined}
         />
         <UIModeSwitcher
           currentMode={uiMode}
@@ -307,7 +308,7 @@ export default function Home() {
           onGetBalance={refreshBalance}
           isConnected={isConnected}
           isLoadingBalance={isLoadingBalance}
-          walletType={walletType}
+          walletType={walletType ?? undefined}
         />
 
         {/* Wallet Connection Modal */}
