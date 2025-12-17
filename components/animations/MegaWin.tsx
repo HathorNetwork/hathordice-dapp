@@ -193,7 +193,7 @@ export function MegaWin({ payout, token, onComplete }: MegaWinProps) {
         >
           <div className="text-sm md:text-lg text-yellow-200 mb-2 font-bold">AMAZING WIN</div>
           <div className="text-5xl md:text-7xl font-black text-white">
-            {formatTokenAmount(payout * 100)} {token}
+            {formatTokenAmount(Math.round(payout * 100))} {token}
           </div>
         </motion.div>
 

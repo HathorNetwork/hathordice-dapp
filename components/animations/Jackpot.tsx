@@ -187,7 +187,7 @@ export function Jackpot({ payout, token, onComplete }: JackpotProps) {
         >
           <div className="text-base md:text-xl text-red-600 mb-2 font-black">🎊 JACKPOT WIN 🎊</div>
           <div className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-purple-600">
-            {formatTokenAmount(payout * 100)} {token}
+            {formatTokenAmount(Math.round(payout * 100))} {token}
           </div>
         </motion.div>
 

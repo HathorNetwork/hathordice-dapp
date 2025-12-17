@@ -154,7 +154,7 @@ export function BigWin({ payout, token, onComplete }: BigWinProps) {
         >
           <div className="text-sm md:text-lg text-yellow-900 mb-2 font-bold">YOU WON</div>
           <div className="text-5xl md:text-7xl font-black text-yellow-900">
-            {formatTokenAmount(payout * 100)} {token}
+            {formatTokenAmount(Math.round(payout * 100))} {token}
           </div>
         </motion.div>
       </motion.div>

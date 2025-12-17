@@ -19,7 +19,8 @@ export function calculateMultiplier(threshold: number, randomBitLength: number =
 export function calculatePayout(betAmount: number, threshold: number, randomBitLength: number = 16, houseEdgeBasisPoints: number = 190): number {
   const numerator = betAmount * Math.pow(2, randomBitLength) * (10000 - houseEdgeBasisPoints);
   const denominator = 10000 * threshold;
-  return Math.floor(numerator / denominator);
+  // Round to 2 decimal places instead of flooring to preserve cents
+  return Math.round((numerator / denominator) * 100) / 100;
 }
 
 export function thresholdToWinChance(threshold: number, randomBitLength: number = 16): number {

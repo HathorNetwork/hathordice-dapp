@@ -606,7 +606,7 @@ export default function FortuneTigerBetCard({
                   {isPlacingBet ? (
                     <div className="flex items-center justify-center gap-2">
                       <GoddessSpinner size={48} interval={500} />
-                      <span className="text-xl md:text-2xl">CONFIRMING...</span>
+                      <span className="text-xl md:text-2xl">SENDING...</span>
                     </div>
                   ) : isSpinning ? (
                     <span className="text-2xl md:text-3xl">SPINNING...</span>
