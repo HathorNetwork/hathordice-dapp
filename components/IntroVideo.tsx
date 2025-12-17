@@ -51,6 +51,8 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         <video
           ref={videoRef}
           src="/videos/intro.mp4"
+          poster="/images/intro-poster.png"
+          preload="metadata"
           className="max-w-full max-h-[80vh] object-contain"
           onEnded={handleVideoEnd}
           onError={handleError}
