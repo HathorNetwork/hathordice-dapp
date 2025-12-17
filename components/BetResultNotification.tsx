@@ -105,7 +105,7 @@ export default function BetResultNotification({ bet, onComplete }: BetResultNoti
                 CHICKEN DINNER! 🍗
               </h3>
               <div className="text-5xl font-bold text-slate-900 mb-2">
-                +{bet.payout.toFixed(2)} {bet.token}
+                +{(bet.payout / 100).toFixed(2)} {bet.token}
               </div>
               <div className="text-sm text-slate-800 mt-4">
                 You won with lucky number {bet.luckyNumber} ≤ {bet.threshold}!
@@ -121,7 +121,7 @@ export default function BetResultNotification({ bet, onComplete }: BetResultNoti
                 Lucky number {bet.luckyNumber} {'>'} {bet.threshold}
               </div>
               <div className="text-lg text-slate-400 mb-4">
-                Lost {bet.amount.toFixed(2)} {bet.token}
+                Lost {(bet.amount / 100).toFixed(2)} {bet.token}
               </div>
               <div className="bg-slate-700 rounded-lg p-4 mt-4">
                 <p className="text-yellow-400 font-semibold mb-2">

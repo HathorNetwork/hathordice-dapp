@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { HathorCoreAPI } from '@/lib/hathorCoreAPI';
 import { ContractState, ContractTransaction } from '@/types/hathor';
 import { config, Network } from '@/lib/config';
@@ -142,22 +142,22 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getContractStateForToken = (token: string): ContractState | null => {
+  const getContractStateForToken = useCallback((token: string): ContractState | null => {
     return contractStates[token] || null;
-  };
+  }, [contractStates]);
 
-  const getContractIdForToken = (token: string): string | null => {
+  const getContractIdForToken = useCallback((token: string): string | null => {
     return tokenContractMap[token] || null;
-  };
+  }, [tokenContractMap]);
 
-  const getTokenForContractId = (contractId: string): string => {
+  const getTokenForContractId = useCallback((contractId: string): string => {
     for (const [token, id] of Object.entries(tokenContractMap)) {
       if (id === contractId) {
         return token;
       }
     }
     return 'HTR'; // fallback
-  };
+  }, [tokenContractMap]);
 
   const refreshContractStates = async () => {
     if (config.useMockWallet) {

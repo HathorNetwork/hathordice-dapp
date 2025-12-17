@@ -173,9 +173,14 @@ export default function Home() {
     try {
       const result = await claimBalance(amount, selectedToken, contractId, tokenUid);
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
-      // Refresh claimable balance
-      const claimable = await coreAPI.getClaimableBalance(contractId, address!);
-      setContractBalance(claimable);
+
+      // Update balances locally after successful withdraw
+      const withdrawAmountCents = Math.round(amount * 100);
+      // Increase wallet balance
+      setBalance(balance + BigInt(withdrawAmountCents));
+      // Decrease contract balance
+      setContractBalance(contractBalance - BigInt(withdrawAmountCents));
+
       setShowWithdrawModal(false);
       setWithdrawAmount('');
     } catch (error: any) {

@@ -13,7 +13,7 @@ interface WithdrawCardProps {
 }
 
 export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: WithdrawCardProps) {
-  const { address, claimBalance } = useWallet();
+  const { address, claimBalance, balance, setBalance } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken, coreAPI } = useHathor();
   const [claimableBalance, setClaimableBalance] = useState<bigint>(0n);
   const [isLoadingClaimable, setIsLoadingClaimable] = useState(false);
@@ -76,9 +76,13 @@ export default function WithdrawCard({ selectedToken, isExpanded, onToggle }: Wi
     try {
       const result = await claimBalance(amountToWithdraw, selectedToken, contractId, tokenUid);
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
-      // Refresh claimable balance
-      const claimable = await coreAPI.getClaimableBalance(contractId, address!);
-      setClaimableBalance(claimable);
+
+      // Update balances locally after successful withdraw
+      const withdrawAmountCents = Math.round(amountToWithdraw * 100);
+      // Increase wallet balance
+      setBalance(balance + BigInt(withdrawAmountCents));
+      // Decrease claimable balance locally
+      setClaimableBalance(claimableBalance - BigInt(withdrawAmountCents));
     } catch (error: any) {
       toast.error(error.message || 'Failed to withdraw balance');
     } finally {

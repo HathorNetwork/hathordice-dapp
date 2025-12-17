@@ -7,6 +7,7 @@ import { useHathor } from '@/contexts/HathorContext';
 import {
   calculatePayout,
   formatTokenAmount,
+  formatBalanceWithCommas,
   multiplierToThreshold,
   thresholdToWinChance,
   calculateMaxMultiplier,
@@ -60,11 +61,21 @@ export default function FortuneTigerBetCard({
   onLoadBalance,
   walletType,
 }: FortuneTigerBetCardProps) {
-  const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified } = useWallet();
+  const { walletBalance, contractBalance, placeBet, connectWallet, balance, refreshBalance, isLoadingBalance, balanceVerified, setBalance, setContractBalance } = useWallet();
   const { isConnected, getContractStateForToken, getContractIdForToken, allBets, address } = useHathor();
   const [showMobileDisconnect, setShowMobileDisconnect] = useState(false);
   const contractBalanceInTokens = Number(contractBalance) / 100;
   const totalBalance = walletBalance + contractBalanceInTokens;
+
+  // Compute displayed balance locally from context values (instead of prop)
+  // This ensures immediate updates when we modify balance/contractBalance
+  const computedTotalBalance = balance + contractBalance;
+  const localFormattedBalance = isConnected && balanceVerified && computedTotalBalance > 0n
+    ? `${formatBalanceWithCommas(computedTotalBalance)} ${selectedToken}`
+    : formattedBalance; // Fallback to prop if conditions not met
+
+  // Track pending bet info for local balance updates
+  const pendingBetInfoRef = useRef<{ betAmountCents: number; depositAmountCents: number } | null>(null);
 
   const [betAmount, setBetAmount] = useState(1);
   const [selectedMultiplier, setSelectedMultiplier] = useState(1.5);
@@ -109,6 +120,12 @@ export default function FortuneTigerBetCard({
     setPotentialPayout(payout);
   }, [betAmount, selectedMultiplier, randomBitLength, houseEdgeBasisPoints, contractMaxMultiplierTenths]);
 
+  // Keep a ref to the latest contract balance for use in the bet result effect
+  const contractBalanceRef = useRef(contractBalance);
+  useEffect(() => {
+    contractBalanceRef.current = contractBalance;
+  }, [contractBalance]);
+
   // Watch for bet results
   useEffect(() => {
     if (!pendingBetTxId) return;
@@ -120,6 +137,14 @@ export default function FortuneTigerBetCard({
       setIsSpinning(false);
       setBetResult(bet.result as 'win' | 'lose');
       setPendingBetTxId(null);
+
+      // Update contract balance based on result
+      if (bet.result === 'win' && bet.payout > 0) {
+        // Add payout to contract balance (payout is in cents)
+        setContractBalance(contractBalanceRef.current + BigInt(Math.round(bet.payout)));
+      }
+      // Clear pending bet info
+      pendingBetInfoRef.current = null;
 
       // Randomly select an animation based on result
       const winAnimations: AnimationType[] = [
@@ -144,6 +169,7 @@ export default function FortuneTigerBetCard({
       // Show animation immediately - no delay
       setActiveAnimation(selectedAnimation);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allBets, pendingBetTxId]);
 
   // Trigger balance request when auth popup shows, and close popup when balance is loaded
@@ -280,8 +306,26 @@ export default function FortuneTigerBetCard({
     setIsPlacingBet(true);
 
     try {
+      // Calculate deposit and bet amounts in cents for local balance tracking
+      const betAmountCents = Math.round(betAmount * 100);
+      const contractBalanceCents = Number(contractBalance);
+      const depositAmountCents = Math.max(0, betAmountCents - contractBalanceCents);
+
       const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance);
       setPendingBetTxId(result.response.hash);
+
+      // Store pending bet info for balance update on result
+      pendingBetInfoRef.current = { betAmountCents, depositAmountCents };
+
+      // Update balances locally after successful bet submission
+      // Wallet balance decreases by deposit amount
+      if (depositAmountCents > 0) {
+        setBalance(balance - BigInt(depositAmountCents));
+      }
+      // Contract balance: receives deposit, then bet is deducted
+      // New contract balance = old + deposit - bet
+      const newContractBalance = BigInt(contractBalanceCents) + BigInt(depositAmountCents) - BigInt(betAmountCents);
+      setContractBalance(newContractBalance >= 0n ? newContractBalance : 0n);
 
       // Start spinning AFTER wallet confirmation
       setIsSpinning(true);
@@ -604,7 +648,7 @@ export default function FortuneTigerBetCard({
                 {/* Content */}
                 <div className="relative z-10">
                   {isPlacingBet ? (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-4">
                       <GoddessSpinner size={48} interval={500} />
                       <span className="text-xl md:text-2xl">SENDING...</span>
                     </div>
@@ -619,12 +663,12 @@ export default function FortuneTigerBetCard({
 
             {/* Mobile Balance & Statistics - Below SPIN button on mobile only */}
             <div className="flex md:hidden items-stretch justify-center gap-3 mt-2 w-full">
-              {formattedBalance ? (
+              {localFormattedBalance ? (
                 <div className="flex-1 px-4 py-2 rounded-full border-2 border-yellow-500/60 bg-gradient-to-br from-yellow-900/30 via-black/50 to-yellow-900/30 backdrop-blur-sm flex items-center justify-center">
                   <div className="flex items-center justify-center gap-2">
                     <div className="text-base">💰</div>
                     <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 font-mono">
-                      {formattedBalance}
+                      {localFormattedBalance}
                     </span>
                   </div>
                 </div>
