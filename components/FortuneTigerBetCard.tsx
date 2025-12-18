@@ -412,10 +412,10 @@ export default function FortuneTigerBetCard({
                 <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
               </div>
             )}
-            {network && onNetworkChange && (
+            {onNetworkChange && (
               <div className="flex-1">
                 <NetworkSelector
-                  value={network}
+                  value={network || 'mainnet'}
                   onChange={onNetworkChange}
                 />
               </div>

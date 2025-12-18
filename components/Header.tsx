@@ -37,48 +37,50 @@ export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
           <img src="/images/icon.png" alt="Hathor Dice" className="w-12 h-12" />
         </div>
 
-        {isConnected ? (
-          <div className="flex items-center gap-2">
-            <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
-            <NetworkSelector
-              value={network}
-              onChange={handleNetworkChange}
-            />
-            <div className="relative">
-              <button
-                onClick={() => setShowDisconnectMenu(!showDisconnectMenu)}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors"
-              >
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
-              </button>
-              {showDisconnectMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowDisconnectMenu(false)} />
-                  <div className="absolute top-full mt-2 right-0 z-50">
-                    <button
-                      onClick={() => {
-                        disconnectWallet();
-                        setShowDisconnectMenu(false);
-                      }}
-                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={handleConnect}
-            className="px-6 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
-            style={{ background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#0f172a' }}
-          >
-            Connect Wallet
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <NetworkSelector
+            value={network}
+            onChange={handleNetworkChange}
+          />
+          {isConnected ? (
+            <>
+              <TokenSelector selectedToken={selectedToken} onTokenChange={onTokenChange} />
+              <div className="relative">
+                <button
+                  onClick={() => setShowDisconnectMenu(!showDisconnectMenu)}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors"
+                >
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-sm text-slate-300">{formatAddress(address || '')}</span>
+                </button>
+                {showDisconnectMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowDisconnectMenu(false)} />
+                    <div className="absolute top-full mt-2 right-0 z-50">
+                      <button
+                        onClick={() => {
+                          disconnectWallet();
+                          setShowDisconnectMenu(false);
+                        }}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={handleConnect}
+              className="px-6 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
+              style={{ background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#0f172a' }}
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
       </header>
 
       <WalletConnectionModal
