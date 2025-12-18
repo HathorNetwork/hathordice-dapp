@@ -13,9 +13,10 @@ export default function TokenSelector({ selectedToken, onTokenChange }: TokenSel
 
   // Get available tokens from contract states
   const availableTokens = Object.keys(contractStates);
+  const isDisabled = availableTokens.length === 0;
 
   return (
-    <Select value={selectedToken} onValueChange={onTokenChange}>
+    <Select value={selectedToken} onValueChange={onTokenChange} disabled={isDisabled}>
       <SelectTrigger className="w-full md:w-[85px]">
         <SelectValue placeholder="Select token" />
       </SelectTrigger>

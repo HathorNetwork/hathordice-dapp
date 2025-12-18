@@ -15,7 +15,7 @@ interface PlaceBetCardProps {
 
 export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: PlaceBetCardProps) {
   const { walletBalance, contractBalance, placeBet } = useWallet();
-  const { isConnected, getContractStateForToken, getContractIdForToken } = useHathor();
+  const { isConnected, getContractStateForToken, getContractIdForToken, network } = useHathor();
   const contractBalanceInTokens = Number(contractBalance) / 100;
   const totalBalance = walletBalance + contractBalanceInTokens;
 
@@ -94,7 +94,7 @@ export default function PlaceBetCard({ selectedToken, isExpanded, onToggle }: Pl
 
     setIsPlacingBet(true);
     try {
-      const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance);
+      const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance, network);
       toast.success(`Bet placed successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to place bet');

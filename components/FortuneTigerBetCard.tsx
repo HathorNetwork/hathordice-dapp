@@ -180,7 +180,7 @@ export default function FortuneTigerBetCard({
       if (!isLoadingBalance && !hasAttemptedBalance && balance === 0n) {
         setHasAttemptedBalance(true);
         const tokenUid = contractState?.token_uid || '00';
-        refreshBalance(tokenUid);
+        refreshBalance(tokenUid, network || 'mainnet');
       }
       // Close popup when balance is loaded
       if (balance > 0n) {
@@ -312,7 +312,7 @@ export default function FortuneTigerBetCard({
       const contractBalanceCents = Number(contractBalance);
       const depositAmountCents = Math.max(0, betAmountCents - contractBalanceCents);
 
-      const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance);
+      const result = await placeBet(betAmount, threshold, selectedToken, contractId, tokenUid, contractBalance, network || 'mainnet');
       setPendingBetTxId(result.response.hash);
 
       // Store pending bet info for balance update on result
@@ -358,7 +358,7 @@ export default function FortuneTigerBetCard({
     toast.info('⏳ Please confirm the withdrawal in your wallet...');
 
     try {
-      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid);
+      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid, network || 'mainnet');
 
       // Update balances locally IMMEDIATELY after successful withdrawal
       const withdrawAmountCents = Math.round(withdrawAmount * 100);

@@ -139,7 +139,7 @@ export default function Home() {
     // Fetch balance if token changed or haven't fetched yet for this connection
     if (tokenChanged || needsInitialFetch) {
       const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
-      refreshBalance(tokenUid);
+      refreshBalance(tokenUid, network);
       hasFetchedForConnectionRef.current = true;
     }
 
@@ -172,7 +172,7 @@ export default function Home() {
     toast.info('⏳ Please confirm the withdrawal in your wallet...');
 
     try {
-      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid);
+      const result = await claimBalance(withdrawAmount, selectedToken, contractId, tokenUid, network);
 
       // Update balances locally IMMEDIATELY after successful withdrawal
       const withdrawAmountCents = Math.round(withdrawAmount * 100);
@@ -216,7 +216,7 @@ export default function Home() {
 
     setIsClaiming(true);
     try {
-      const result = await claimBalance(amount, selectedToken, contractId, tokenUid);
+      const result = await claimBalance(amount, selectedToken, contractId, tokenUid, network);
       toast.success(`Balance withdrawn successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
 
       // Update balances locally after successful withdraw
@@ -244,7 +244,7 @@ export default function Home() {
     setIsRefreshingWallet(true);
     try {
       const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
-      await refreshBalance(tokenUid);
+      await refreshBalance(tokenUid, network);
       toast.success('Wallet balance refreshed');
     } catch (error: any) {
       toast.error('Failed to refresh wallet balance');
@@ -346,7 +346,7 @@ export default function Home() {
           formattedBalance={formattedBalance}
           onLoadBalance={() => {
             const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
-            refreshBalance(tokenUid);
+            refreshBalance(tokenUid, network);
           }}
           walletType={walletType ?? undefined}
         />
@@ -354,7 +354,10 @@ export default function Home() {
           currentMode={uiMode}
           onModeChange={handleModeChange}
           balance={formattedBalance}
-          onGetBalance={refreshBalance}
+          onGetBalance={() => {
+            const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+            refreshBalance(tokenUid, network);
+          }}
           isConnected={isConnected}
           isLoadingBalance={isLoadingBalance}
           walletType={walletType ?? undefined}
@@ -411,7 +414,7 @@ export default function Home() {
                             toast.info('⏳ Please confirm the operation in your wallet...');
                           }
                           const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
-                          refreshBalance(tokenUid);
+                          refreshBalance(tokenUid, network);
                         }}
                         className="px-3 py-1 font-medium rounded transition-colors hover:opacity-90"
                         style={{ background: 'linear-gradient(244deg, rgb(255, 166, 0) 0%, rgb(255, 115, 0) 100%)', color: '#1e293b' }}

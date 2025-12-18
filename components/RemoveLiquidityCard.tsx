@@ -15,7 +15,7 @@ interface RemoveLiquidityCardProps {
 
 export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggle }: RemoveLiquidityCardProps) {
   const { address, removeLiquidity, balance, setBalance } = useWallet();
-  const { isConnected, getContractStateForToken, getContractIdForToken, coreAPI } = useHathor();
+  const { isConnected, getContractStateForToken, getContractIdForToken, coreAPI, network } = useHathor();
   const [amount, setAmount] = useState(0);
   const [maxLiquidity, setMaxLiquidity] = useState<bigint>(0n);
   const [isLoadingMax, setIsLoadingMax] = useState(false);
@@ -83,7 +83,7 @@ export default function RemoveLiquidityCard({ selectedToken, isExpanded, onToggl
 
     setIsRemovingLiquidity(true);
     try {
-      const result = await removeLiquidity(amount, selectedToken, contractId, tokenUid);
+      const result = await removeLiquidity(amount, selectedToken, contractId, tokenUid, network);
       toast.success(`Liquidity removed successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
 
       // Update balances locally after successful remove liquidity

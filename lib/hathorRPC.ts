@@ -1,6 +1,7 @@
 import { HathorRPCRequest, HathorRPCResponse, GetBalanceParams, GetAddressParams, SendNanoContractTxParams } from '@/types/hathor';
 import Client from '@walletconnect/sign-client';
 import { SessionTypes } from '@walletconnect/types';
+import { Network } from '@/lib/config';
 
 type RequestFunction = <T = any>(method: string, params?: any) => Promise<T>;
 
@@ -9,18 +10,27 @@ export class HathorRPCService {
   private client: Client | undefined;
   private session: SessionTypes.Struct | undefined;
   private customRequest: RequestFunction | undefined;
+  private network: Network;
 
-  constructor(useMock: boolean = false, client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction) {
+  constructor(useMock: boolean = false, client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction, network: Network = 'mainnet') {
     this.useMock = useMock;
     this.client = client;
     this.session = session;
     this.customRequest = customRequest;
+    this.network = network;
   }
 
-  updateClientAndSession(client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction) {
+  updateClientAndSession(client?: Client, session?: SessionTypes.Struct, customRequest?: RequestFunction, network?: Network) {
     this.client = client;
     this.session = session;
     this.customRequest = customRequest;
+    if (network) {
+      this.network = network;
+    }
+  }
+
+  setNetwork(network: Network) {
+    this.network = network;
   }
 
   async request<T = any>(method: string, params?: any): Promise<T> {
@@ -46,7 +56,7 @@ export class HathorRPCService {
 
     try {
       const result = await this.client.request<T>({
-        chainId: 'hathor:testnet',
+        chainId: `hathor:${this.network}`,
         topic: this.session.topic,
         request: {
           method,

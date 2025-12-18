@@ -15,7 +15,7 @@ interface AddLiquidityCardProps {
 
 export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }: AddLiquidityCardProps) {
   const { walletBalance, contractBalance, addLiquidity, balance, setBalance } = useWallet();
-  const { isConnected, getContractStateForToken, getContractIdForToken } = useHathor();
+  const { isConnected, getContractStateForToken, getContractIdForToken, network } = useHathor();
   const contractBalanceInTokens = Number(contractBalance) / 100;
   const totalBalance = walletBalance + contractBalanceInTokens;
   const [amount, setAmount] = useState(500);
@@ -53,7 +53,7 @@ export default function AddLiquidityCard({ selectedToken, isExpanded, onToggle }
 
     setIsAddingLiquidity(true);
     try {
-      const result = await addLiquidity(amount, selectedToken, contractId, tokenUid);
+      const result = await addLiquidity(amount, selectedToken, contractId, tokenUid, network);
       toast.success(`Liquidity added successfully! TX: ${result.response.hash?.slice(0, 10)}...`);
 
       // Update wallet balance locally after successful add liquidity

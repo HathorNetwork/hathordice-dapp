@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { WalletState } from '@/types';
 import { HathorRPCService } from '@/lib/hathorRPC';
 import { useUnifiedWallet } from './UnifiedWalletContext';
-import { config } from '@/lib/config';
+import { config, Network } from '@/lib/config';
 
 interface WalletContextType {
   connected: boolean;
@@ -18,11 +18,11 @@ interface WalletContextType {
   connectWallet: () => void;
   disconnectWallet: () => void;
   setBalance: React.Dispatch<React.SetStateAction<bigint>>;
-  placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, contractBalance: bigint) => Promise<any>;
-  addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
-  removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
-  claimBalance: (amount: number, token: string, contractId: string, tokenUid: string) => Promise<any>;
-  refreshBalance: (tokenUid?: string) => Promise<void>;
+  placeBet: (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, contractBalance: bigint, network: Network) => Promise<any>;
+  addLiquidity: (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => Promise<any>;
+  removeLiquidity: (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => Promise<any>;
+  claimBalance: (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => Promise<any>;
+  refreshBalance: (tokenUid?: string, network?: Network) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -82,7 +82,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   // Define fetchBalance before it's used in useEffect
-  const fetchBalance = async (addr: string, forceRefresh: boolean = false, tokenUid: string = '00') => {
+  const fetchBalance = async (addr: string, forceRefresh: boolean = false, tokenUid: string = '00', network: Network = 'mainnet') => {
     if (!addr) return;
 
     // Don't use cache - always fetch fresh balance to ensure authorization
@@ -93,11 +93,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Update RPC service network before making request
+    rpcService.setNetwork(network);
+
     setIsLoadingBalance(true);
     setBalanceVerified(false); // Reset verified state while fetching new balance
     try {
       const balanceInfo = await rpcService.getBalance({
-        network: 'testnet',
+        network,
         tokens: [tokenUid],
       });
 
@@ -165,10 +168,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setIsLoadingBalance(false);
   };
 
-  const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, currentContractBalance: bigint) => {
+  const placeBet = async (betAmount: number, threshold: number, token: string, contractId: string, tokenUid: string, currentContractBalance: bigint, network: Network) => {
     if (!adapter?.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
+
+    // Update RPC service network before making request
+    rpcService.setNetwork(network);
 
     const amountInCents = Math.floor(betAmount * 100);
     const contractBalanceInCents = Number(currentContractBalance);
@@ -199,7 +205,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     const params = {
-      network: 'testnet',
+      network,
       nc_id: contractId,
       method: 'place_bet',
       args: [amountInCents, threshold],
@@ -219,10 +225,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string) => {
+  const addLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => {
     if (!adapter?.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
+
+    // Update RPC service network before making request
+    rpcService.setNetwork(network);
 
     const amountInCents = Math.floor(amount * 100);
 
@@ -235,7 +244,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     const params = {
-      network: 'testnet',
+      network,
       nc_id: contractId,
       method: 'add_liquidity',
       args: [],
@@ -261,10 +270,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string) => {
+  const removeLiquidity = async (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => {
     if (!adapter?.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
+
+    // Update RPC service network before making request
+    rpcService.setNetwork(network);
 
     const amountInCents = Math.floor(amount * 100);
 
@@ -277,7 +289,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     const params = {
-      network: 'testnet',
+      network,
       nc_id: contractId,
       method: 'remove_liquidity',
       args: [],
@@ -304,10 +316,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const claimBalance = async (amount: number, token: string, contractId: string, tokenUid: string) => {
+  const claimBalance = async (amount: number, token: string, contractId: string, tokenUid: string, network: Network) => {
     if (!adapter?.isConnected || !address) {
       throw new Error('Wallet not connected');
     }
+
+    // Update RPC service network before making request
+    rpcService.setNetwork(network);
 
     const amountInCents = Math.floor(amount * 100);
 
@@ -320,7 +335,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     const params = {
-      network: 'testnet',
+      network,
       nc_id: contractId,
       method: 'claim_balance',
       args: [],
@@ -347,9 +362,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshBalance = async (tokenUid: string = '00') => {
+  const refreshBalance = async (tokenUid: string = '00', network: Network = 'mainnet') => {
     if (address) {
-      await fetchBalance(address, true, tokenUid); // Force refresh
+      await fetchBalance(address, true, tokenUid, network); // Force refresh
     }
   };
 

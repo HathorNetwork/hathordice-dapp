@@ -76,12 +76,61 @@ export function HathorProvider({ children }: { children: ReactNode }) {
   const isConnected = walletConnect.isConnected || metaMask.isConnected;
 
   useEffect(() => {
-    setCoreAPI(new HathorCoreAPI(network));
-  }, [network]);
+    const newCoreAPI = new HathorCoreAPI(network);
+    setCoreAPI(newCoreAPI);
+    // Clear existing states when network changes
+    setContractStates({});
+    setTokenContractMap({});
 
-  useEffect(() => {
-    refreshContractStates();
-  }, []);
+    // Fetch contract states for the new network
+    const fetchContractStates = async () => {
+      if (config.useMockWallet) {
+        setContractStates(MOCK_CONTRACT_STATES);
+        setTokenContractMap({
+          'HTR': 'mock-contract-htr',
+          'USDC': 'mock-contract-usdc',
+        });
+        return;
+      }
+
+      const contractIds = config.getContractIdsForNetwork(network);
+      if (contractIds.length === 0) {
+        return;
+      }
+
+      try {
+        const states: Record<string, ContractState> = {};
+        const map: Record<string, string> = {};
+        for (const contractId of contractIds) {
+          const state = await newCoreAPI.getContractState(contractId);
+
+          // Get token symbol - check cache first, then fetch from node
+          let tokenSymbol = tokenSymbolCache[state.token_uid];
+          if (!tokenSymbol) {
+            // Check if it's all zeros (HTR)
+            if (/^0+$/.test(state.token_uid)) {
+              tokenSymbol = 'HTR';
+            } else {
+              // Fetch from node
+              const tokenInfo = await newCoreAPI.getTokenInfo(state.token_uid);
+              tokenSymbol = tokenInfo?.symbol || state.token_uid.slice(0, 8);
+            }
+            // Cache the result
+            tokenSymbolCache[state.token_uid] = tokenSymbol;
+          }
+
+          states[tokenSymbol] = state;
+          map[tokenSymbol] = contractId;
+        }
+        setContractStates(states);
+        setTokenContractMap(map);
+      } catch (error) {
+        console.error('Failed to fetch contract states:', error);
+      }
+    };
+
+    fetchContractStates();
+  }, [network]);
 
   useEffect(() => {
     if (isConnected) {
@@ -159,7 +208,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     return 'HTR'; // fallback
   }, [tokenContractMap]);
 
-  const refreshContractStates = async () => {
+  const refreshContractStatesWithAPI = async (api: HathorCoreAPI, currentNetwork: Network) => {
     if (config.useMockWallet) {
       setContractStates(MOCK_CONTRACT_STATES);
       setTokenContractMap({
@@ -169,13 +218,16 @@ export function HathorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (config.contractIds.length === 0) return;
+    const contractIds = config.getContractIdsForNetwork(currentNetwork);
+    if (contractIds.length === 0) {
+      return;
+    }
 
     try {
       const states: Record<string, ContractState> = {};
       const map: Record<string, string> = {};
-      for (const contractId of config.contractIds) {
-        const state = await coreAPI.getContractState(contractId);
+      for (const contractId of contractIds) {
+        const state = await api.getContractState(contractId);
 
         // Get token symbol - check cache first, then fetch from node
         let tokenSymbol = tokenSymbolCache[state.token_uid];
@@ -185,7 +237,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
             tokenSymbol = 'HTR';
           } else {
             // Fetch from node
-            const tokenInfo = await coreAPI.getTokenInfo(state.token_uid);
+            const tokenInfo = await api.getTokenInfo(state.token_uid);
             tokenSymbol = tokenInfo?.symbol || state.token_uid.slice(0, 8);
           }
           // Cache the result
@@ -200,6 +252,10 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch contract states:', error);
     }
+  };
+
+  const refreshContractStates = async () => {
+    await refreshContractStatesWithAPI(coreAPI, network);
   };
 
   const fetchRecentBets = async (): Promise<Bet[]> => {
@@ -285,7 +341,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     try {
       const allBets: Bet[] = [];
 
-      for (const contractId of config.contractIds) {
+      for (const contractId of config.getContractIdsForNetwork(network)) {
         const history = await coreAPI.getContractHistory(contractId, 20);
 
         for (const tx of history.transactions) {
@@ -372,7 +428,7 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     try {
       const allBets: Bet[] = [];
 
-      for (const contractId of config.contractIds) {
+      for (const contractId of config.getContractIdsForNetwork(network)) {
         let hasMore = true;
         let after: string | undefined = undefined;
         const seenTxIds = new Set<string>();
@@ -468,17 +524,20 @@ export function HathorProvider({ children }: { children: ReactNode }) {
     }
 
     // Wait for tokenContractMap to be populated before fetching history
-    if (Object.keys(tokenContractMap).length === 0 && config.contractIds.length > 0) {
+    if (Object.keys(tokenContractMap).length === 0 && config.getContractIdsForNetwork(network).length > 0) {
       return;
     }
+
+    // Create API instance based on current network to avoid stale coreAPI state
+    const api = new HathorCoreAPI(network);
 
     setIsLoadingHistory(true);
     try {
       const allTxs: ContractTransaction[] = [];
       const bets: Bet[] = [];
 
-      for (const contractId of config.contractIds) {
-        const history = await coreAPI.getContractHistory(contractId, 100);
+      for (const contractId of config.getContractIdsForNetwork(network)) {
+        const history = await api.getContractHistory(contractId, 100);
 
         // Store all transactions with contractId
         const txsWithContractId = history.transactions.map(tx => ({...tx, contractId}));
