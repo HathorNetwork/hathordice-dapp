@@ -29,14 +29,17 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
       throw new Error('MetaMask is not installed');
     }
 
+    // Build request object - only include params if defined (MetaMask requires params to be object/array, not undefined)
+    const request: { method: string; params?: any } = { method };
+    if (params !== undefined) {
+      request.params = params;
+    }
+
     const resultStr = await window.ethereum.request({
       method: 'wallet_invokeSnap',
       params: {
         snapId: SNAP_ID,
-        request: {
-          method,
-          params,
-        },
+        request,
       },
     });
 
