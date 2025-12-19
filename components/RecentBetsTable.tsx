@@ -12,7 +12,15 @@ interface RecentBetsTableProps {
 }
 
 export default function RecentBetsTable({ selectedToken }: RecentBetsTableProps) {
-  const { allBets, isLoadingHistory, lastHistoryUpdate, refreshHistory } = useHathor();
+  const { allBets, isLoadingHistory, lastHistoryUpdate, refreshHistory, network } = useHathor();
+
+  // Get explorer URL based on network
+  const getExplorerUrl = (txId: string) => {
+    const baseUrl = network === 'mainnet'
+      ? 'https://explorer.hathor.network'
+      : 'https://explorer.testnet.hathor.network';
+    return `${baseUrl}/transaction/${txId}`;
+  };
 
   // Filter bets by selected token
   const filteredBets = allBets.filter(bet => bet.token === selectedToken);
@@ -192,7 +200,7 @@ export default function RecentBetsTable({ selectedToken }: RecentBetsTableProps)
                   </td>
                   <td className="px-4 py-3 text-sm text-blue-400 font-mono">
                     <a
-                      href={`https://explorer.testnet.hathor.network/transaction/${bet.id}`}
+                      href={getExplorerUrl(bet.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"

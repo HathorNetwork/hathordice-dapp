@@ -17,7 +17,15 @@ interface RecentOperationsTableProps {
 }
 
 export default function RecentOperationsTable({ selectedToken }: RecentOperationsTableProps) {
-  const { allTransactions, address, isLoadingHistory, lastHistoryUpdate, refreshHistory, getContractIdForToken } = useHathor();
+  const { allTransactions, address, isLoadingHistory, lastHistoryUpdate, refreshHistory, getContractIdForToken, network } = useHathor();
+
+  // Get explorer URL based on network
+  const getExplorerUrl = (txId: string) => {
+    const baseUrl = network === 'mainnet'
+      ? 'https://explorer.hathor.network'
+      : 'https://explorer.testnet.hathor.network';
+    return `${baseUrl}/transaction/${txId}`;
+  };
 
   const contractId = getContractIdForToken(selectedToken);
 
@@ -111,7 +119,7 @@ export default function RecentOperationsTable({ selectedToken }: RecentOperation
                     </td>
                     <td className="py-3 text-blue-400 text-sm font-mono">
                       <a
-                        href={`https://explorer.testnet.hathor.network/transaction/${op.tx_id}`}
+                        href={getExplorerUrl(op.tx_id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:underline"
