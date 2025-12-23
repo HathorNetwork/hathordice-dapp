@@ -268,7 +268,8 @@ export default function FortuneTigerBetCard({
     }
 
     // If connected but no balance available yet (need authorization)
-    if (balance === 0n) {
+    // Only show auth popup if BOTH wallet and contract balance are 0
+    if (balance === 0n && contractBalance === 0n) {
       setShowAuthPopup(true);
       return;
     }
