@@ -57,15 +57,28 @@ const MOCK_CONTRACT_STATES: Record<string, ContractState> = {
   },
 };
 
+const NETWORK_STORAGE_KEY = 'hathor_selected_network';
+
+// Helper to get initial network from localStorage or default
+const getInitialNetwork = (): Network => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(NETWORK_STORAGE_KEY);
+    if (stored === 'mainnet' || stored === 'testnet') {
+      return stored;
+    }
+  }
+  return config.defaultNetwork;
+};
+
 export function HathorProvider({ children }: { children: ReactNode }) {
   const walletConnect = useWalletConnect();
   const metaMask = useMetaMask();
   const wallet = useWallet();
   const [address, setAddress] = useState<string | null>(null);
-  const [network, setNetwork] = useState<Network>(config.defaultNetwork);
+  const [network, setNetwork] = useState<Network>(getInitialNetwork);
   const [contractStates, setContractStates] = useState<Record<string, ContractState>>({});
   const [tokenContractMap, setTokenContractMap] = useState<Record<string, string>>({});
-  const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(network));
+  const [coreAPI, setCoreAPI] = useState(() => new HathorCoreAPI(getInitialNetwork()));
 
   // Centralized history state
   const [allBets, setAllBets] = useState<Bet[]>([]);
@@ -134,19 +147,32 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isConnected) {
-      refreshContractStates();
-      // Get address from the connected wallet
+      // Get address and network from the connected wallet
       if (walletConnect.isConnected) {
         const addr = walletConnect.getFirstAddress();
         setAddress(addr);
+        // Sync network from wallet session
+        const walletNetwork = walletConnect.getConnectedNetwork();
+        if (walletNetwork && walletNetwork !== network) {
+          console.log(`Syncing network from wallet: ${walletNetwork}`);
+          setNetwork(walletNetwork);
+          localStorage.setItem(NETWORK_STORAGE_KEY, walletNetwork);
+        }
       } else if (metaMask.isConnected) {
         setAddress(metaMask.address);
+        // Sync network from MetaMask wallet
+        if (metaMask.walletNetwork && metaMask.walletNetwork !== network) {
+          console.log(`Syncing network from MetaMask: ${metaMask.walletNetwork}`);
+          setNetwork(metaMask.walletNetwork);
+          localStorage.setItem(NETWORK_STORAGE_KEY, metaMask.walletNetwork);
+        }
       }
+      refreshContractStates();
     } else {
       setAddress(null);
       wallet.setBalance(0n);
     }
-  }, [isConnected, network, walletConnect, metaMask]);
+  }, [isConnected, walletConnect.isConnected, metaMask.isConnected, walletConnect, metaMask]);
 
   const connectWallet = async () => {
     try {
@@ -178,6 +204,8 @@ export function HathorProvider({ children }: { children: ReactNode }) {
 
   const switchNetwork = async (newNetwork: Network) => {
     setNetwork(newNetwork);
+    // Persist to localStorage
+    localStorage.setItem(NETWORK_STORAGE_KEY, newNetwork);
     // If WalletConnect supports network switching, attempt it
     if (typeof (walletConnect as any).switchNetwork === 'function') {
       try {

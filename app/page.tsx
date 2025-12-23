@@ -87,6 +87,7 @@ export default function Home() {
 
       const contractId = getContractIdForToken(selectedToken);
       if (!contractId) {
+        // Contract states not loaded yet, wait for them
         return;
       }
 
@@ -106,9 +107,8 @@ export default function Home() {
     };
 
     fetchClaimableBalance();
-    // Only re-fetch when connection, address, or token actually changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, selectedToken]);
+    // Re-fetch when connection, address, token, network, or coreAPI changes
+  }, [isConnected, address, selectedToken, network, coreAPI, getContractIdForToken]);
 
   // Handle token change - clear balance and fetch new one
   const handleTokenChange = (newToken: string) => {
@@ -133,19 +133,24 @@ export default function Home() {
   useEffect(() => {
     if (!isConnected || !address) return;
 
+    // Wait for contract state to be loaded (needed for tokenUid)
+    const contractState = getContractStateForToken(selectedToken);
+    if (!contractState) {
+      return;
+    }
+
     const tokenChanged = prevTokenRef.current !== selectedToken;
     const needsInitialFetch = !hasFetchedForConnectionRef.current;
 
     // Fetch balance if token changed or haven't fetched yet for this connection
     if (tokenChanged || needsInitialFetch) {
-      const tokenUid = getContractStateForToken(selectedToken)?.token_uid || '00';
+      const tokenUid = contractState.token_uid || '00';
       refreshBalance(tokenUid, network);
       hasFetchedForConnectionRef.current = true;
     }
 
     prevTokenRef.current = selectedToken;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedToken, isConnected, address]);
+  }, [selectedToken, isConnected, address, network, getContractStateForToken, refreshBalance]);
 
   const handleWithdrawClick = () => {
     setShowWithdrawModal(true);

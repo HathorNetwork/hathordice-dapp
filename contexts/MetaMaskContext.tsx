@@ -6,6 +6,7 @@ import { config, Network } from '@/lib/config';
 
 interface IMetaMaskContext {
   address: string | null;
+  walletNetwork: Network | null;
   isConnected: boolean;
   isInstalled: boolean;
   connect: (targetNetwork?: Network) => Promise<void>;
@@ -20,6 +21,7 @@ const SNAP_VERSION = '*'; // Use latest version
 
 export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode[] }) {
   const [address, setAddress] = useState<string | null>(null);
+  const [walletNetwork, setWalletNetwork] = useState<Network | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -82,6 +84,10 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
           if (walletInfo?.address0) {
             setAddress(walletInfo.address0);
             setIsConnected(true);
+            // Store the wallet's network
+            if (walletInfo.network) {
+              setWalletNetwork(walletInfo.network as Network);
+            }
           }
         }
       } catch (error) {
@@ -147,6 +153,7 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
 
       setAddress(finalAddress);
       setIsConnected(true);
+      setWalletNetwork(dappNetwork);
       localStorage.setItem('wallet_type', 'metamask');
       localStorage.setItem('address', finalAddress);
     } catch (error: any) {
@@ -157,6 +164,7 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
 
   const disconnect = useCallback(async () => {
     setAddress(null);
+    setWalletNetwork(null);
     setIsConnected(false);
     localStorage.removeItem('wallet_type');
     localStorage.removeItem('address');
@@ -182,13 +190,14 @@ export function MetaMaskProvider({ children }: { children: ReactNode | ReactNode
   const value = useMemo(
     () => ({
       address,
+      walletNetwork,
       isConnected,
       isInstalled,
       connect,
       disconnect,
       request,
     }),
-    [address, isConnected, isInstalled, connect, disconnect, request]
+    [address, walletNetwork, isConnected, isInstalled, connect, disconnect, request]
   );
 
   return <MetaMaskContext.Provider value={value}>{children}</MetaMaskContext.Provider>;
