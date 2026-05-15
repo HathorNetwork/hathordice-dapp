@@ -56,7 +56,8 @@ NEXT_PUBLIC_USE_MOCK_WALLET=true
 NEXT_PUBLIC_DEFAULT_NETWORK=india-testnet
 NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india-testnet.hathor.network/v1a
 NEXT_PUBLIC_HATHOR_NODE_URL_MAINNET=https://node1.mainnet.hathor.network/v1a
-NEXT_PUBLIC_CONTRACT_IDS=["contract_id_1","contract_id_2"]
+NEXT_PUBLIC_CONTRACT_IDS_TESTNET=["contract_id_1","contract_id_2"]
+NEXT_PUBLIC_CONTRACT_IDS_MAINNET=[]
 ```
 
 ## Setup Instructions
@@ -86,7 +87,7 @@ cp .env.local.example .env.local
 
 Edit `.env.local` with your configuration:
 - Set `NEXT_PUBLIC_USE_MOCK_WALLET=false` for production
-- Add your contract IDs to `NEXT_PUBLIC_CONTRACT_IDS`
+- Add your contract IDs to `NEXT_PUBLIC_CONTRACT_IDS_TESTNET` and/or `NEXT_PUBLIC_CONTRACT_IDS_MAINNET`
 - Configure network URLs if using custom nodes
 
 4. Run development server:
