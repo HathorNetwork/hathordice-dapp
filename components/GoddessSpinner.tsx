@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { publicAsset } from '@/lib/publicAsset';
 
 interface GoddessSpinnerProps {
     size?: number;
@@ -7,12 +8,12 @@ interface GoddessSpinnerProps {
 }
 
 const GODDESS_IMAGES = [
-    '/images/cartoon_anubis.png',
-    '/images/cartoon_pharaoh.png',
-    '/images/cartoon_scarab.png',
-    '/images/cartoon_eye_of_horus.png',
-    '/images/cartoon_pyramid.png',
-    '/images/cartoon_mummy.png',
+    publicAsset('/images/cartoon_anubis.png'),
+    publicAsset('/images/cartoon_pharaoh.png'),
+    publicAsset('/images/cartoon_scarab.png'),
+    publicAsset('/images/cartoon_eye_of_horus.png'),
+    publicAsset('/images/cartoon_pyramid.png'),
+    publicAsset('/images/cartoon_mummy.png'),
 ];
 
 export function GoddessSpinner({ size = 64, interval = 800 }: GoddessSpinnerProps) {

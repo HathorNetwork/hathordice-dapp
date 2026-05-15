@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { publicAsset } from '@/lib/publicAsset';
 
 interface IntroVideoProps {
   onComplete: () => void;
@@ -10,6 +11,8 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showPlayButton, setShowPlayButton] = useState(true);
   const onCompleteRef = useRef(onComplete);
+  const videoSrc = publicAsset('/videos/intro.mp4');
+  const posterSrc = publicAsset('/images/intro-poster.png');
 
   // Keep ref updated
   useEffect(() => {
@@ -50,8 +53,8 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
       >
         <video
           ref={videoRef}
-          src="/videos/intro.mp4"
-          poster="/images/intro-poster.png"
+          src={videoSrc}
+          poster={posterSrc}
           preload="metadata"
           className="max-w-full max-h-[80vh] object-contain"
           onEnded={handleVideoEnd}

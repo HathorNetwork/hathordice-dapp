@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHathor } from '@/contexts/HathorContext';
+import { publicAsset } from '@/lib/publicAsset';
 import { formatAddress } from '@/lib/utils';
 import { WalletConnectionModal } from './WalletConnectionModal';
 import { NetworkSelector } from './NetworkSelector';
@@ -16,6 +17,7 @@ export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
   const { isConnected, address, disconnectWallet, network, switchNetwork } = useHathor();
   const [showModal, setShowModal] = useState(false);
   const [showDisconnectMenu, setShowDisconnectMenu] = useState(false);
+  const iconSrc = publicAsset('/images/icon.png');
 
   const handleConnect = async () => {
     setShowModal(true);
@@ -34,7 +36,7 @@ export default function Header({ selectedToken, onTokenChange }: HeaderProps) {
       <header className="flex items-center justify-between p-6 border-b border-slate-700">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-white">HATHOR DICE</h1>
-          <img src="/images/icon.png" alt="Hathor Dice" className="w-12 h-12" />
+          <img src={iconSrc} alt="Hathor Dice" className="w-12 h-12" />
         </div>
 
         <div className="flex items-center gap-2">
