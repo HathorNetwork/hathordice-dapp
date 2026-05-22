@@ -1,5 +1,5 @@
 # Frontend Dockerfile - Multi-stage build for Next.js SSR
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -22,7 +22,8 @@ ENV NEXT_PUBLIC_USE_MOCK_WALLET=false
 ENV NEXT_PUBLIC_DEFAULT_NETWORK=testnet
 ENV NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india.testnet.hathor.network/v1a
 ENV NEXT_PUBLIC_HATHOR_NODE_URL_MAINNET=https://node1.mainnet.hathor.network/v1a
-ENV NEXT_PUBLIC_CONTRACT_IDS='["0000000079862340c1f7822b81f58668e2a62c5f1b69d8d2e3b8fdf1855196c1"]'
+ENV NEXT_PUBLIC_CONTRACT_IDS_TESTNET='["00000000361ec0406d90a5bb4c6c7330af5792178b86cfc353afd4e50a62b741"]'
+ENV NEXT_PUBLIC_CONTRACT_IDS_MAINNET='["000003e0baf17eee5a25aa0ccf36eb331a05818c87bc1c316f54485aa974c485"]'
 ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=8264fff563181da658ce64ee80e80458
 
 # Set environment for production build
@@ -32,7 +33,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:22-alpine AS runner
 
 # Install curl for health checks and other utilities
 RUN apk add --no-cache curl

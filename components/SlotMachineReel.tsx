@@ -2,6 +2,7 @@
 
 import { motion, useAnimate } from 'framer-motion';
 import { useEffect, useMemo } from 'react';
+import { publicAsset } from '@/lib/publicAsset';
 
 interface SlotMachineReelProps {
   finalFruit: string;
@@ -13,12 +14,12 @@ interface SlotMachineReelProps {
 }
 
 const FRUITS = [
-  '/images/cartoon_pharaoh.png',
-  '/images/icon.png',
-  '/images/cartoon_scarab.png',
-  '/images/cartoon_mummy.png',
-  '/images/cartoon_anubis.png',
-  '/images/cartoon_pyramid.png'
+  publicAsset('/images/cartoon_pharaoh.png'),
+  publicAsset('/images/icon.png'),
+  publicAsset('/images/cartoon_scarab.png'),
+  publicAsset('/images/cartoon_mummy.png'),
+  publicAsset('/images/cartoon_anubis.png'),
+  publicAsset('/images/cartoon_pyramid.png')
 ];
 
 export function SlotMachineReel({

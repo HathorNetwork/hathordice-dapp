@@ -174,7 +174,8 @@ NEXT_PUBLIC_USE_MOCK_WALLET=true
 NEXT_PUBLIC_DEFAULT_NETWORK=testnet
 NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india.testnet.hathor.network/v1a
 NEXT_PUBLIC_HATHOR_NODE_URL_MAINNET=https://node1.mainnet.hathor.network/v1a
-NEXT_PUBLIC_CONTRACT_IDS=["contract_id"]
+NEXT_PUBLIC_CONTRACT_IDS_TESTNET=["contract_id"]
+NEXT_PUBLIC_CONTRACT_IDS_MAINNET=[]
 ```
 
 ## Testing
@@ -194,7 +195,7 @@ NEXT_PUBLIC_CONTRACT_IDS=["contract_id"]
 
 ### Immediate
 1. Deploy contract to India Testnet
-2. Update `NEXT_PUBLIC_CONTRACT_IDS` with real contract ID
+2. Update `NEXT_PUBLIC_CONTRACT_IDS_TESTNET` with real contract ID
 3. Test with real wallet
 4. Verify all calculations match contract
 

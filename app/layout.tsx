@@ -4,6 +4,7 @@ import { HathorProvider } from '@/contexts/HathorContext';
 import { WalletConnectProvider } from '@/contexts/WalletConnectContext';
 import { MetaMaskProvider } from '@/contexts/MetaMaskContext';
 import { UnifiedWalletProvider } from '@/contexts/UnifiedWalletContext';
+import { publicAsset } from '@/lib/publicAsset';
 import { ToastProvider, Toaster } from '@/lib/toast';
 import './globals.css';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Hathor Dice - Provably Fair Betting',
   description: 'Decentralized dice game on Hathor Network',
   icons: {
-    icon: '/images/icon.png',
+    icon: publicAsset('/images/icon.png'),
   },
 };
 
