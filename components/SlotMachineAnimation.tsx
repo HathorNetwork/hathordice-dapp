@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { publicAsset } from '@/lib/publicAsset';
 import { SlotMachineReel } from './SlotMachineReel';
 import { useEffect, useState } from 'react';
 
@@ -21,12 +22,12 @@ export function SlotMachineAnimation({
 }: SlotMachineAnimationProps) {
   // Define fruit symbols (Must match SlotMachineReel.tsx)
   const fruits = [
-    '/images/cartoon_pharaoh.png',
-    '/images/icon.png',
-    '/images/cartoon_scarab.png',
-    '/images/cartoon_mummy.png',
-    '/images/cartoon_anubis.png',
-    '/images/cartoon_pyramid.png'
+    publicAsset('/images/cartoon_pharaoh.png'),
+    publicAsset('/images/icon.png'),
+    publicAsset('/images/cartoon_scarab.png'),
+    publicAsset('/images/cartoon_mummy.png'),
+    publicAsset('/images/cartoon_anubis.png'),
+    publicAsset('/images/cartoon_pyramid.png')
   ];
 
   // For winning: all same fruit. For losing: different fruits

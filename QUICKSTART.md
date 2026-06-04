@@ -45,7 +45,8 @@ All actions are simulated and no real transactions occur.
 1. **Update Environment**:
 ```env
 NEXT_PUBLIC_USE_MOCK_WALLET=false
-NEXT_PUBLIC_CONTRACT_IDS=["your_contract_id_here"]
+NEXT_PUBLIC_CONTRACT_IDS_TESTNET=["your_contract_id_here"]
+NEXT_PUBLIC_CONTRACT_IDS_MAINNET=[]
 ```
 
 2. **Restart Server**:
@@ -89,7 +90,7 @@ The Contract Information panel shows:
 - Check that you're on the correct network
 
 ### "Contract state not loaded"
-- Verify `NEXT_PUBLIC_CONTRACT_IDS` is set correctly
+- Verify `NEXT_PUBLIC_CONTRACT_IDS_TESTNET` or `NEXT_PUBLIC_CONTRACT_IDS_MAINNET` is set correctly for the selected network
 - Check that the contract exists on the selected network
 - Ensure node URL is accessible
 

@@ -102,13 +102,15 @@ NEXT_PUBLIC_USE_MOCK_WALLET=true
 NEXT_PUBLIC_DEFAULT_NETWORK=india-testnet
 NEXT_PUBLIC_HATHOR_NODE_URL_TESTNET=https://node1.india.testnet.hathor.network/v1a
 NEXT_PUBLIC_HATHOR_NODE_URL_MAINNET=https://node1.mainnet.hathor.network/v1a
-NEXT_PUBLIC_CONTRACT_IDS=[]
+NEXT_PUBLIC_CONTRACT_IDS_TESTNET=[]
+NEXT_PUBLIC_CONTRACT_IDS_MAINNET=[]
 ```
 
 ### For Production
 ```env
 NEXT_PUBLIC_USE_MOCK_WALLET=false
-NEXT_PUBLIC_CONTRACT_IDS=["your_deployed_contract_id"]
+NEXT_PUBLIC_CONTRACT_IDS_TESTNET=[]
+NEXT_PUBLIC_CONTRACT_IDS_MAINNET=["your_deployed_contract_id"]
 ```
 
 ## Testing Checklist
